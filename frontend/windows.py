@@ -12,6 +12,8 @@ import backend.accounts as accounts
 import backend.core as core
 from backend.exceptions import BitmexAccountsException, BitmexGUIException
 
+from utility import significant_figures
+
 
 #
 # Constants
@@ -56,6 +58,7 @@ class Main(tkinter.Tk):
         histWindow = OrderHistory(hidden=True)
         accWindow = AccountManagement(hidden=True)
         newWindow = SelectOrder(hidden=True)
+        calcWindow = Calculator(hidden=True)
 
         self.windows = [
             posWindow,
@@ -63,7 +66,8 @@ class Main(tkinter.Tk):
             ordsWindow,
             stpsWindow,
             accWindow,
-            newWindow
+            newWindow,
+            calcWindow
         ]
 
         # Widgets
@@ -96,9 +100,17 @@ class Main(tkinter.Tk):
                                    text="New Order",
                                    command=lambda: newWindow.toggle_hidden(),
                                    **self.BUTTON_PARAMS)
+        calcButton = tkinter.Button(frame,
+                                    text="PNL Calculator",
+                                    command=lambda: calcWindow.toggle_hidden(),
+                                    **self.BUTTON_PARAMS)
         hideButton = tkinter.Button(frame,
                                     text="Hide All Windows",
                                     command=lambda: [x.hide() for x in self.windows],
+                                    **self.BUTTON_PARAMS)
+        showButton = tkinter.Button(frame,
+                                    text="Show All Windows",
+                                    command=lambda: [x.show() for x in self.windows],
                                     **self.BUTTON_PARAMS)
 
         posButton.grid(row=0, column=0)
@@ -108,7 +120,9 @@ class Main(tkinter.Tk):
         histButton.grid(row=2, column=0)
         accButton.grid(row=2, column=1)
         newButton.grid(row=3, column=0)
-        hideButton.grid(row=3, column=1)
+        calcButton.grid(row=3, column=1)
+        hideButton.grid(row=4, column=0)
+        showButton.grid(row=4, column=1)
         frame.pack()
 
         # Alive flag
@@ -1467,3 +1481,134 @@ class OrderHistory(AbstractChild):
             new_height = self.MAX_TREE_HEIGHT
         self.tree.configure(height=new_height)
         self.tree.pack()
+
+
+class Calculator(AbstractChild):
+    """
+    Window for calculating theoretical PNL.
+    """
+
+    TITLE = "PNL Calculator"
+    SIGNIFICANT_FIGURES = 5
+
+    def __init__(self, *args, **kvargs):
+        AbstractChild.__init__(self, *args, **kvargs)
+
+        # Backend
+        try:
+            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+            openInstruments.sort()
+        except Exception as e:
+            print(e)
+            openInstruments = []
+
+        # Frontend
+        mainFrame = tkinter.Frame(self)
+        upperFrame = tkinter.Frame(mainFrame)
+        lowerFrame = tkinter.Frame(mainFrame)
+        buttonFrame = tkinter.Frame(mainFrame)
+
+        self.symVar = tkinter.StringVar(self)
+
+        symLabel = tkinter.Label(upperFrame, text="Symbol:")
+        symCombo = tkinter.ttk.Combobox(upperFrame, textvariable=self.symVar)
+        symCombo["values"] = openInstruments
+        qtyLabel = tkinter.Label(upperFrame, text="Quantity:")
+        self.qtySpin = tkinter.Spinbox(upperFrame, from_=1, to=SPINBOX_LIMIT)
+        entLabel = tkinter.Label(upperFrame, text="Entry Price:")
+        self.entSpin = tkinter.Spinbox(upperFrame, from_=1, to=SPINBOX_LIMIT)
+        extLabel = tkinter.Label(upperFrame, text="Exit Price:")
+        self.extSpin = tkinter.Spinbox(upperFrame, from_=1, to=SPINBOX_LIMIT)
+        levLabel = tkinter.Label(upperFrame, text="Leverage:")
+        self.levSpin = tkinter.Spinbox(upperFrame, from_=1, to=SPINBOX_LIMIT)
+
+        enVLabel = tkinter.Label(lowerFrame, text="Entry Value:")
+        self.enVLabel = tkinter.Label(lowerFrame)
+        exVLabel = tkinter.Label(lowerFrame, text="Exit Value:")
+        self.exVLabel = tkinter.Label(lowerFrame)
+        pnlLabel = tkinter.Label(lowerFrame, text="Profit/Loss:")
+        self.pnlLabel = tkinter.Label(lowerFrame)
+        perLabel = tkinter.Label(lowerFrame, text="Profit/Loss %:")
+        self.perLabel = tkinter.Label(lowerFrame)
+        roeLabel = tkinter.Label(lowerFrame, text="ROE %:")
+        self.roeLabel = tkinter.Label(lowerFrame)
+
+        longButton = tkinter.Button(buttonFrame, text="Calculate Long",
+                                    command=lambda: self.calculate(short=False))
+        shortButton = tkinter.Button(buttonFrame, text="Calculate Short",
+                                     command=lambda: self.calculate(short=True))
+
+        symLabel.grid(column=0, row=0)
+        symCombo.grid(column=1, row=0)
+        qtyLabel.grid(column=0, row=1)
+        self.qtySpin.grid(column=1, row=1)
+        entLabel.grid(column=0, row=2)
+        self.entSpin.grid(column=1, row=2)
+        extLabel.grid(column=0, row=3)
+        self.extSpin.grid(column=1, row=3)
+        levLabel.grid(column=0, row=4)
+        self.levSpin.grid(column=1, row=4)
+
+        enVLabel.grid(column=0, row=0)
+        self.enVLabel.grid(column=1, row=0)
+        exVLabel.grid(column=0, row=1)
+        self.exVLabel.grid(column=1, row=1)
+        pnlLabel.grid(column=0, row=2)
+        self.pnlLabel.grid(column=1, row=2)
+        perLabel.grid(column=0, row=3)
+        self.perLabel.grid(column=1, row=3)
+        roeLabel.grid(column=0, row=4)
+        self.roeLabel.grid(column=1, row=4)
+
+        longButton.grid(column=0, row=0)
+        shortButton.grid(column=1, row=0)
+
+        upperFrame.pack()
+        lowerFrame.pack()
+        buttonFrame.pack()
+        mainFrame.pack()
+
+    def calculate(self, short=False):
+        """
+        Get values from spinboxes, calculate and update labels.
+        """
+        # Get values
+        symbol = self.symVar.get()
+        qty = float(self.qtySpin.get())
+        entryPx = float(self.entSpin.get())
+        exitPx = float(self.extSpin.get())
+        leverage = float(self.levSpin.get())
+
+        if symbol == "":
+            tkinter.messagebox.showerror("Error", "Symbol is required.")
+
+        # Calculation
+        try:
+            foo = accounts.get_all()[0]["name"]
+            inverse = core.instrument_is_inverse(foo, symbol)
+            entryValue = core.instrument_margin_per_contract(foo, symbol, entryPx)
+            exitValue = core.instrument_margin_per_contract(foo, symbol, exitPx)
+        except Exception as e:
+            tkinter.messagebox.showerror("Error", str(e))
+            raise e
+        entryValue *= qty
+        exitValue *= qty
+
+        if short != inverse:
+            # Short or long + inverse
+            pnl = entryValue - exitValue
+        else:
+            # Long or short + inverse
+            pnl = exitValue - entryValue
+        percent = pnl / entryValue * 100
+        percent = significant_figures(percent, self.SIGNIFICANT_FIGURES)
+
+        roe = pnl / entryValue * leverage * 100
+        roe = significant_figures(roe, self.SIGNIFICANT_FIGURES)
+
+        # Set values
+        self.enVLabel.configure(text=str(entryValue))
+        self.exVLabel.configure(text=str(exitValue))
+        self.pnlLabel.configure(text=str(pnl))
+        self.perLabel.configure(text=str(percent))
+        self.roeLabel.configure(text=str(roe))

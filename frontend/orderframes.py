@@ -7,6 +7,7 @@ import tkinter.messagebox
 import tkinter.ttk
 
 import backend.accounts as accounts
+import backend.core as core
 
 
 #
@@ -25,8 +26,8 @@ class Main(tkinter.Frame):
     Frame present in every order window. Requires parent to have send() method.
     """
 
-    ENTRY_PARAMS = {
-        "width": 10
+    COMBO_PARAMS = {
+        "width": 9
     }
     SPINBOX_PARAMS = {
         "width": 9
@@ -38,8 +39,21 @@ class Main(tkinter.Frame):
     def __init__(self, parent, window, *args, **kvargs):
         tkinter.Frame.__init__(self, parent, *args, **kvargs)
 
+        # Backend
+        try:
+            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+            openInstruments.sort()
+        except Exception as e:
+            print(e)
+            openInstruments = []
+
+        # Frontend
+        self.symbolVar = tkinter.StringVar(self)
+
         symbolLabel = tkinter.Label(self, text="Symbol:")
-        self.symbolEntry = tkinter.Entry(self, **self.ENTRY_PARAMS)
+        symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
+                                           **self.COMBO_PARAMS)
+        symbolCombo["values"] = openInstruments
         self.qtyLabel = tkinter.Label(self, text="Quantity:")
         self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
                                        **self.SPINBOX_PARAMS)
@@ -51,7 +65,7 @@ class Main(tkinter.Frame):
                                     **self.BUTTON_PARAMS)
 
         symbolLabel.grid(column=0, row=0)
-        self.symbolEntry.grid(column=1, row=0)
+        symbolCombo.grid(column=1, row=0)
         self.qtyLabel.grid(column=0, row=1)
         self.qtySpin.grid(column=1, row=1)
         buyButton.grid(column=0, row=2)
@@ -61,7 +75,7 @@ class Main(tkinter.Frame):
         """
         Returns current text in symbol entry.
         """
-        return str(self.symbolEntry.get())
+        return str(symbolVar.get())
 
     def get_qty(self):
         """

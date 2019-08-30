@@ -281,6 +281,22 @@ def instrument_margin_per_contract(accountName, symbol, price,
     return marginPerContract
 
 
+def open_instruments(accountName):
+    """
+    Get all open instruments.
+
+    accountName:        name of account (for authorization)
+
+    Returns list of symbol strings.
+    """
+    result = []
+    response = _for_one_account(accountName, api.instrument_get,
+                                filter={"state": "Open"})["response"]
+    for instrument in response:
+        result.append(instrument["symbol"])
+    return result
+
+
 def instrument_info(accountNames):
     """
     Get info about all instruments of each account.
@@ -1297,6 +1313,7 @@ def active_order_info(accountNames):
             if order["ordType"] == "Limit":
                 orderValue = instrument_margin_per_contract(accountNames[0], order["symbol"],
                                                             order["price"])
+                orderValue *= order["orderQty"]
             else:
                 orderValue = None
             dict = {
