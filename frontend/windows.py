@@ -44,7 +44,12 @@ class Main(tkinter.Tk):
         tkinter.Tk.__init__(self, *args, **kvargs)
 
         # Backend
-        accounts.load()
+        try:
+            accounts.load()
+        except BitmexAccountsException:
+            print("No accounts savefile found, creating a blank one now...")
+            accounts.save()
+            accounts.load()
 
         # Frontend
         self.protocol("WM_DELETE_WINDOW", self.quit)
@@ -1498,6 +1503,9 @@ class Calculator(AbstractChild):
         try:
             openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
             openInstruments.sort()
+        except IndexError:
+            print("Warning: No accounts were created yet.")
+            openInstruments = []
         except Exception as e:
             print(e)
             openInstruments = []
