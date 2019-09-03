@@ -75,7 +75,7 @@ class Main(tkinter.Frame):
         """
         Returns current text in symbol entry.
         """
-        return str(symbolVar.get())
+        return str(self.symbolVar.get())
 
     def get_qty(self):
         """
