@@ -57,10 +57,10 @@ class Main(tkinter.Frame):
         self.qtyLabel = tkinter.Label(self, text="Quantity:")
         self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
                                        **self.SPINBOX_PARAMS)
-        buyButton = tkinter.Button(self, text="Buy",
+        buyButton = tkinter.Button(self, text="Buy/Long",
                                    command=lambda: window._send(sell=False),
                                    **self.BUTTON_PARAMS)
-        sellButton = tkinter.Button(self, text="Sell",
+        sellButton = tkinter.Button(self, text="Sell/Short",
                                     command=lambda: window._send(sell=True),
                                     **self.BUTTON_PARAMS)
 

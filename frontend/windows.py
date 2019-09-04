@@ -192,7 +192,7 @@ class AbstractOrder(tkinter.Tk):
             tkinter.messagebox.showerror("Error", "No accounts are selected.")
             raise BitmexGUIException("No accounts are selected.")
         try:
-            self.send(sell=False)
+            self.send(sell)
         except Exception as e:
             tkinter.messagebox.showerror("Error", str(e))
 
