@@ -996,7 +996,6 @@ class ActiveOrders(AbstractChild):
         "width": 100
     }
     VAR = (
-        "symbol",
         "qty",
         "orderPrice",
         "displayQty",
@@ -1009,8 +1008,8 @@ class ActiveOrders(AbstractChild):
         "execInst",
         "time"
     )
+    FIRST_TEXT = "Symbol"
     TEXT = (
-        "Symbol",
         "Qty",
         "Order Price",
         "Display Qty",
@@ -1023,8 +1022,8 @@ class ActiveOrders(AbstractChild):
         "execInst",
         "Time"
     )
+    FIRST_WIDTH = 100
     WIDTH = (
-        70,
         40,
         100,
         90,
@@ -1060,8 +1059,8 @@ class ActiveOrders(AbstractChild):
                                   command=self.amend_limit_price)
 
         self.tree["columns"] = self.VAR
-        self.tree.heading("#0", text="Order ID", anchor=tkinter.W)
-        self.tree.column("#0", width=320)
+        self.tree.heading("#0", text=self.FIRST_TEXT, anchor=tkinter.W)
+        self.tree.column("#0", width=self.FIRST_WIDTH)
         for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
@@ -1082,7 +1081,6 @@ class ActiveOrders(AbstractChild):
         """
         selected_iid = self.tree.focus()
         parent_iid = self.tree.parent(selected_iid)
-        selected = self.tree.item(selected_iid)
         parent = self.tree.item(parent_iid)
 
         if not selected_iid:  # No item selected
@@ -1090,7 +1088,7 @@ class ActiveOrders(AbstractChild):
             raise BitmexGUIException("No item selected.")
 
         name = parent["text"]
-        id = selected["text"]
+        id = selected_iid
 
         return name, id
 
@@ -1122,8 +1120,8 @@ class ActiveOrders(AbstractChild):
                 for v in self.VAR:
                     values.append(str(order[v]))
 
-                self.tree.insert(parent, "end", text=order["orderID"],
-                                 values=values)
+                self.tree.insert(parent, "end", iid=order["orderID"],
+                                 text=order["symbol"], values=values)
                 #self.tree.insert("", "end", text=position["symbol"],
                 #                 values=values)
 
@@ -1186,7 +1184,6 @@ class StopOrders(AbstractChild):
         "width": 100
     }
     VAR = (
-        "symbol",
         "qty",
         "orderPrice",
         "filled",
@@ -1197,8 +1194,8 @@ class StopOrders(AbstractChild):
         "execInst",
         "time"
     )
+    FIRST_TEXT = "Symbol"
     TEXT = (
-        "Symbol",
         "Qty",
         "Order Price",
         "Filled",
@@ -1209,8 +1206,8 @@ class StopOrders(AbstractChild):
         "execInst",
         "Time"
     )
+    FIRST_WIDTH = 100
     WIDTH = (
-        70,
         40,
         100,
         60,
@@ -1248,8 +1245,8 @@ class StopOrders(AbstractChild):
                                     command=self.amend_stop_price)
 
         self.tree["columns"] = self.VAR
-        self.tree.heading("#0", text="Order ID", anchor=tkinter.W)
-        self.tree.column("#0", width=320)
+        self.tree.heading("#0", text=self.FIRST_TEXT, anchor=tkinter.W)
+        self.tree.column("#0", width=self.FIRST_WIDTH)
         for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
@@ -1272,7 +1269,6 @@ class StopOrders(AbstractChild):
         """
         selected_iid = self.tree.focus()
         parent_iid = self.tree.parent(selected_iid)
-        selected = self.tree.item(selected_iid)
         parent = self.tree.item(parent_iid)
 
         if not selected_iid:  # No item selected
@@ -1280,7 +1276,7 @@ class StopOrders(AbstractChild):
             raise BitmexGUIException("No item selected.")
 
         name = parent["text"]
-        id = selected["text"]
+        id = selected_iid
 
         return name, id
 
@@ -1312,8 +1308,8 @@ class StopOrders(AbstractChild):
                 for v in self.VAR:
                     values.append(str(order[v]))
 
-                self.tree.insert(parent, "end", text=order["orderID"],
-                                 values=values)
+                self.tree.insert(parent, "end", iid=order["orderID"],
+                                 text=order["symbol"], values=values)
                 #self.tree.insert("", "end", text=position["symbol"],
                 #                 values=values)
 
