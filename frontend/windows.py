@@ -275,6 +275,7 @@ class Limit(AbstractOrder):
         postOnly = self.limitFrame.get_post_only()
         reduceOnly = self.limitFrame.get_reduce_only()
         if postOnly:
+            if
             core.order_limit_post_only(accountNames, symbol, quantity, limitPrice,
                                        sell, reduceOnly)
         else:

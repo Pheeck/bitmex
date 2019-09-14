@@ -266,3 +266,56 @@ class Trigger(tkinter.Frame):
         Returns if close on trigger is checked.
         """
         return bool(self.clsVar.get())
+
+
+class StopLoss(tkinter.Frame):
+    """
+    Frame for optional close stop order mirroring main order qantity.
+    """
+
+    TRIGGER_TYPES = [
+        "Mark",
+        "Last",
+        "Index"
+    ]
+    OPTION_PARAMS = {
+        "width": 9
+    }
+
+    def __init__(self, *args, **kvargs):
+        tkinter.Frame.__init__(self, *args, **kvargs)
+
+        self.stopVar = tkinter.IntVar(self)
+        self.typeVar = tkinter.StringVar(self)
+        self.typeVar.set(self.TRIGGER_TYPES[1])
+
+        stopCheck = tkinter.Checkbutton(self, text="Stop loss", var=self.stopVar)
+        pxLabel = tkinter.Label(self, text="Trigger Price:")
+        self.pxSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT)
+        typeLabel = tkinter.Label(self, text="Trigger Type:")
+        typeOption = tkinter.OptionMenu(self, self.typeVar, *self.TRIGGER_TYPES)
+        typeOption.configure(**self.OPTION_PARAMS)
+
+        stopCheck.grid(column=0, row=0)
+        pxLabel.grid(column=0, row=1)
+        self.pxSpin.grid(column=1, row=1)
+        typeLabel.grid(column=0, row=2)
+        typeOption.grid(column=1, row=2)
+
+    def get_stop_loss(self):
+        """
+        Returns if stop loss is enabled.
+        """
+        return bool(self.stopVar.get())
+
+    def get_trigger_price(self):
+        """
+        Returns number currently in trigger price spinbox.
+        """
+        return int(self.pxSpin.get())
+
+    def get_trigger_type(self):
+        """
+        Returns currently selected string in trigger type menu.
+        """
+        return str(self.typeVar.get())

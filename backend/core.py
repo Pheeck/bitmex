@@ -356,7 +356,8 @@ def instrument_info(accountNames):
 # Limit
 
 def order_limit(accountNames, symbol, quantity, limitPrice, sell=False, hidden=False,
-                displayQty=0, timeInForce="GoodTillCancel", reduceOnly=False):
+                displayQty=0, timeInForce="GoodTillCancel", reduceOnly=False,
+                stopLoss=False, stopPrice=None, trigger="Last"):
     """
     Send limit order for each account.
 
@@ -372,6 +373,9 @@ def order_limit(accountNames, symbol, quantity, limitPrice, sell=False, hidden=F
                         ImmediateOrCancel
                         FillOrKill
     reduceOnly: true for reduce-only order which won't increase position
+    stopLoss:           if set to true, also create mirroring close stop orders
+    stopPrice:          trigger price of stop loss order
+    trigger:            trigger type of stop loss order
     """
     if timeInForce not in ("GoodTillCancel", "ImmediateOrCancel", "FillOrKill"):
         raise BitmexCoreException(str(trigger) + " isn't a valid time in force. "
@@ -395,10 +399,22 @@ def order_limit(accountNames, symbol, quantity, limitPrice, sell=False, hidden=F
     if hidden:
         params["displayQty"] = displayQty
     _for_each_account(accountNames, api.order_post, **params)
+    # Stop loss
+    if stopLoss:
+        params["ordType"] = "StopLimit"
+        params["price"] = stopPrice
+        params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
+        if trigger in ("Mark", "Last", "Index"):
+            execInst.append(trigger + "Price")
+        else:
+            raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
+                                      "Choose from Mark, Last and Index.")
+        _for_each_account(accounts, api.order_post, **params)
 
 
 def order_limit_post_only(accountNames, symbol, quantity, limitPrice, sell=False,
-                          reduceOnly=False):
+                          reduceOnly=False, stopLoss=False, stopPrice=None,
+                          trigger="Last"):
     """
     Send limit post-only order for each account.
 
@@ -408,6 +424,9 @@ def order_limit_post_only(accountNames, symbol, quantity, limitPrice, sell=False
     limitPrice:     buy/sell for this much
     sell:           true for sell order, false for buy order
     reduceOnly:     true for reduce-only order which won't increase position
+    stopLoss:           if set to true, also create mirroring close stop orders
+    stopPrice:          trigger price of stop loss order
+    trigger:            trigger type of stop loss order
     """
     # Generate execInst
     execInst = []
@@ -425,6 +444,17 @@ def order_limit_post_only(accountNames, symbol, quantity, limitPrice, sell=False
         "side": "Sell" if sell else "Buy"
     }
     _for_each_account(accountNames, api.order_post, **params)
+    # Stop loss
+    if stopLoss:
+        params["ordType"] = "StopLimit"
+        params["price"] = stopPrice
+        params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
+        if trigger in ("Mark", "Last", "Index"):
+            execInst.append(trigger + "Price")
+        else:
+            raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
+                                      "Choose from Mark, Last and Index.")
+        _for_each_account(accounts, api.order_post, **params)
 
 
 def order_stop_limit(accountNames, symbol, quantity, limitPrice, stopPrice,
@@ -623,7 +653,8 @@ def order_take_profit_limit_post_only(accountNames, symbol, quantity, limitPrice
 def order_limit_relative(accountNames, symbol, percent, limitPrice,
                          sell=False, hidden=False, displayQty=0,
                          timeInForce="GoodTillCancel", reduceOnly=False,
-                         forceContractValue=None, forceInverse=None):
+                         forceContractValue=None, forceInverse=None,
+                         stopLoss=False, stopPrice=None, trigger="Last"):
     """
     Send limit order for each account with order quantity relative to account
     available margin.
@@ -644,6 +675,9 @@ def order_limit_relative(accountNames, symbol, percent, limitPrice,
                         much currency is in one contract of this instrument
     forceInverse:       if set to true or false, overrides what the server says
                         about this instruments inversion
+    stopLoss:           if set to true, also create mirroring close stop orders
+    stopPrice:          trigger price of stop loss order
+    trigger:            trigger type of stop loss order
     """
     if timeInForce not in ("GoodTillCancel", "ImmediateOrCancel", "FillOrKill"):
         raise BitmexCoreException(str(trigger) + " isn't a valid time in force. "
@@ -672,15 +706,30 @@ def order_limit_relative(accountNames, symbol, percent, limitPrice,
         "timeInForce": timeInForce,
         "side": "Sell" if sell else "Buy"
     }
-    if hidden:
-        params["displayQty"] = displayQty
-    _for_each_relative(accountNames, api.order_post, percent, marginPerContract,
-                       **params)
+    # Send orders
+    responses = _for_each_relative(accountNames, func, percent, marginPerContract,
+                                   **params)
+    # Stop loss
+    if stopLoss:
+        params["ordType"] = "StopLimit"
+        params["price"] = stopPrice
+        params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
+        if trigger in ("Mark", "Last", "Index"):
+            execInst.append(trigger + "Price")
+        else:
+            raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
+                                      "Choose from Mark, Last and Index.")
+        for response in responses:
+            account = response["account"]["name"]
+            orderQty = response["response"]["orderQty"]
+            params["orderQty"] = orderQty
+            _for_one_account(account, api.order_post, **params)
 
 
 def order_limit_relative_post_only(accountNames, symbol, percent, limitPrice,
                                    sell=False, reduceOnly=False,
-                                   forceContractValue=None, forceInverse=None,):
+                                   forceContractValue=None, forceInverse=None,
+                                   stopLoss=False, stopPrice=None, trigger="Last"):
     """
     Send limit post-only order for each account with order quantity relative to
     account available margin.
@@ -695,6 +744,9 @@ def order_limit_relative_post_only(accountNames, symbol, percent, limitPrice,
                         much currency is in one contract of this instrument
     forceInverse:       if set to true or false, overrides what the server says
                         about this instruments inversion
+    stopLoss:           if set to true, also create mirroring close stop orders
+    stopPrice:          trigger price of stop loss order
+    trigger:            trigger type of stop loss order
     """
     # Get margin per contract
     try:
@@ -719,8 +771,23 @@ def order_limit_relative_post_only(accountNames, symbol, percent, limitPrice,
         "execInst": execInst,
         "side": "Sell" if sell else "Buy"
     }
-    _for_each_relative(accountNames, api.order_post, percent, marginPerContract,
-                       **params)
+    responses = _for_each_relative(accountNames, api.order_post, percent, marginPerContract,
+                                   **params)
+    # Stop loss
+    if stopLoss:
+        params["ordType"] = "StopLimit"
+        params["price"] = stopPrice
+        params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
+        if trigger in ("Mark", "Last", "Index"):
+            execInst.append(trigger + "Price")
+        else:
+            raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
+                                      "Choose from Mark, Last and Index.")
+            for response in responses:
+                account = response["account"]["name"]
+                orderQty = response["response"]["orderQty"]
+                params["orderQty"] = orderQty
+                _for_one_account(account, api.order_post, **params)
 
 
 def order_stop_limit_relative(accountNames, symbol, percent, limitPrice, stopPrice,
@@ -977,7 +1044,8 @@ def order_take_profit_limit_relative_post_only(accountNames, symbol, percent, li
 
 # Market
 
-def order_market(accountNames, symbol, quantity, sell=False):
+def order_market(accountNames, symbol, quantity, sell=False, stopLoss=False,
+                 stopPrice=None, trigger="Last"):
     """
     Send market order for each account.
 
@@ -985,6 +1053,10 @@ def order_market(accountNames, symbol, quantity, sell=False):
     symbol:         symbol of position
     quantity:       how many contracts in each order
     sell:           true for sell order, false for buy order
+    reduceOnly: true for reduce-only order which won't increase position
+    stopLoss:           if set to true, also create mirroring close stop orders
+    stopPrice:          trigger price of stop loss order
+    trigger:            trigger type of stop loss order
     """
     params = {
         "symbol": symbol,
@@ -993,6 +1065,18 @@ def order_market(accountNames, symbol, quantity, sell=False):
         "side": "Sell" if sell else "Buy"
     }
     _for_each_account(accountNames, api.order_post, **params)
+    # Stop loss
+    if stopLoss:
+        params["ordType"] = "StopLimit"
+        params["price"] = stopPrice
+        params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
+        execInst = ""
+        if trigger in ("Mark", "Last", "Index"):
+            execInst.append(trigger + "Price")
+        else:
+            raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
+                                      "Choose from Mark, Last and Index.")
+        _for_each_account(accounts, api.order_post, **params)
 
 
 def order_stop_market(accountNames, symbol, quantity, stopPrice, sell=False,
