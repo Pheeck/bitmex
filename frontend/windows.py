@@ -195,6 +195,7 @@ class AbstractOrder(tkinter.Tk):
             self.send(sell)
         except Exception as e:
             tkinter.messagebox.showerror("Error", str(e))
+            raise e
 
     def send(self, sell=False):
         """
@@ -217,11 +218,25 @@ class Market(AbstractOrder):
 
     TITLE = "New Market Order"
 
+    def __init__(self, *args, **kvargs):
+        AbstractOrder.__init__(self, *args, **kvargs)
+
+        self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
+        self.stopLossFrame.pack()
+
     def send(self, sell=False):
         accountNames = self.accFrame.get_names()
         symbol = self.mainFrame.get_symbol()
         quantity = self.mainFrame.get_qty()
-        core.order_market(accountNames, symbol, quantity, sell)
+        # Handle stop loss
+        stopLoss = self.stopLossFrame.get_stop_loss()
+        stopLossParams = {}
+        if stopLoss:
+            stopLossParams["stopPrice"] = self.stopLossFrame.get_trigger_price()
+            stopLossParams["trigger"] = self.stopLossFrame.get_trigger_type()
+        # Send order
+        core.order_market(accountNames, symbol, quantity, sell, stopLoss=stopLoss,
+                          **stopLossParams)
 
 
 class TriggerMarket(AbstractOrder):
@@ -265,7 +280,9 @@ class Limit(AbstractOrder):
         AbstractOrder.__init__(self, *args, **kvargs)
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
+        self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
         self.limitFrame.pack()
+        self.stopLossFrame.pack()
 
     def send(self, sell=False):
         accountNames = self.accFrame.get_names()
@@ -274,19 +291,28 @@ class Limit(AbstractOrder):
         limitPrice = self.limitFrame.get_limit_price()
         postOnly = self.limitFrame.get_post_only()
         reduceOnly = self.limitFrame.get_reduce_only()
+        # Handle stop loss
+        stopLoss = self.stopLossFrame.get_stop_loss()
+        stopLossParams = {}
+        if stopLoss:
+            stopLossParams["stopPrice"] = self.stopLossFrame.get_trigger_price()
+            stopLossParams["trigger"] = self.stopLossFrame.get_trigger_type()
+        # Handle post only
         if postOnly:
-            if
+            # Send order
             core.order_limit_post_only(accountNames, symbol, quantity, limitPrice,
-                                       sell, reduceOnly)
+                                       sell, reduceOnly, stopLoss=stopLoss, **stopLossParams)
         else:
             hidden = self.limitFrame.get_hidden()
             displayQty = self.limitFrame.get_display_qty()
             timeInForce = self.limitFrame.get_time_in_force()
+            # Send order
             core.order_limit(accountNames, symbol, quantity, limitPrice, sell,
-                             hidden, displayQty, timeInForce, reduceOnly)
+                             hidden, displayQty, timeInForce, reduceOnly,
+                             stopLoss=stopLoss, **stopLossParams)
 
 
-class TriggerLimit(Limit):
+class TriggerLimit(AbstractOrder):
     """
     Order window. Queries api to send stop limit orders and take profit limit
     orders.
@@ -295,7 +321,10 @@ class TriggerLimit(Limit):
     TITLE = "New Trigger Limit Order"
 
     def __init__(self, *args, **kvargs):
-        Limit.__init__(self, *args, **kvargs)
+        AbstractOrder.__init__(self, *args, **kvargs)
+
+        self.limitFrame = orderframes.Limit(self.leftFrame)
+        self.limitFrame.pack()
 
         self.limitFrame.roCheck.configure(state="disabled")
 
@@ -346,7 +375,9 @@ class RelativeLimit(AbstractOrder):
         self.mainFrame.qtySpin.configure(to=100)
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
+        self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
         self.limitFrame.pack()
+        self.stopLossFrame.pack()
 
     def send(self, sell=False):
         accountNames = self.accFrame.get_names()
@@ -355,16 +386,26 @@ class RelativeLimit(AbstractOrder):
         limitPrice = self.limitFrame.get_limit_price()
         postOnly = self.limitFrame.get_post_only()
         reduceOnly = self.limitFrame.get_reduce_only()
+        # Handle stop loss
+        stopLoss = self.stopLossFrame.get_stop_loss()
+        stopLossParams = {}
+        if stopLoss:
+            stopLossParams["stopPrice"] = self.stopLossFrame.get_trigger_price()
+            stopLossParams["trigger"] = self.stopLossFrame.get_trigger_type()
+        # Handle post only
         if postOnly:
+            # Send order
             core.order_limit_relative_post_only(accountNames, symbol, percent,
-                                                limitPrice, sell, reduceOnly)
+                                                limitPrice, sell, reduceOnly,
+                                                stopLoss=stopLoss, **stopLossParams)
         else:
             hidden = self.limitFrame.get_hidden()
             displayQty = self.limitFrame.get_display_qty()
             timeInForce = self.limitFrame.get_time_in_force()
+            # Send order
             core.order_limit_relative(accountNames, symbol, percent, limitPrice,
                                       sell, hidden, displayQty, timeInForce,
-                                      reduceOnly)
+                                      reduceOnly, stopLoss=stopLoss, **stopLossParams)
 
 
 class TriggerRelativeLimit(AbstractOrder):
@@ -376,7 +417,10 @@ class TriggerRelativeLimit(AbstractOrder):
     TITLE = "New Trigger Relative Limit Order"
 
     def __init__(self, *args, **kvargs):
-        Limit.__init__(self, *args, **kvargs)
+        AbstractOrder.__init__(self, *args, **kvargs)
+
+        self.limitFrame = orderframes.Limit(self.leftFrame)
+        self.limitFrame.pack()
 
         self.mainFrame.qtyLabel.configure(text="Percent: ")
         self.mainFrame.qtySpin.configure(to=100)

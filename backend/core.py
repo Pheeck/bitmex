@@ -385,14 +385,13 @@ def order_limit(accountNames, symbol, quantity, limitPrice, sell=False, hidden=F
     execInst = []
     if reduceOnly:
         execInst.append("ReduceOnly")
-    execInst = ", ".join(execInst)
 
     params = {
         "symbol": symbol,
         "ordType": "Limit",
         "orderQty": quantity,
         "price": limitPrice,
-        "execInst": execInst,
+        "execInst": ", ".join(execInst),
         "timeInForce": timeInForce,
         "side": "Sell" if sell else "Buy"
     }
@@ -400,16 +399,19 @@ def order_limit(accountNames, symbol, quantity, limitPrice, sell=False, hidden=F
         params["displayQty"] = displayQty
     _for_each_account(accountNames, api.order_post, **params)
     # Stop loss
+    execInst = ["ReduceOnly"]
     if stopLoss:
-        params["ordType"] = "StopLimit"
-        params["price"] = stopPrice
+        params.pop("price")
+        params["ordType"] = "Stop"
+        params["stopPx"] = stopPrice
         params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
         if trigger in ("Mark", "Last", "Index"):
             execInst.append(trigger + "Price")
         else:
             raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
                                       "Choose from Mark, Last and Index.")
-        _for_each_account(accounts, api.order_post, **params)
+        params["execInst"] = ", ".join(execInst)
+        _for_each_account(accountNames, api.order_post, **params)
 
 
 def order_limit_post_only(accountNames, symbol, quantity, limitPrice, sell=False,
@@ -433,28 +435,30 @@ def order_limit_post_only(accountNames, symbol, quantity, limitPrice, sell=False
     execInst.append("ParticipateDoNotInitiate")
     if reduceOnly:
         execInst.append("ReduceOnly")
-    execInst = ", ".join(execInst)
 
     params = {
         "symbol": symbol,
         "ordType": "Limit",
         "orderQty": quantity,
         "price": limitPrice,
-        "execInst": execInst,
+        "execInst": ", ".join(execInst),
         "side": "Sell" if sell else "Buy"
     }
     _for_each_account(accountNames, api.order_post, **params)
     # Stop loss
+    execInst = ["ReduceOnly"]
     if stopLoss:
-        params["ordType"] = "StopLimit"
-        params["price"] = stopPrice
+        params.pop("price")
+        params["ordType"] = "Stop"
+        params["stopPx"] = stopPrice
         params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
         if trigger in ("Mark", "Last", "Index"):
             execInst.append(trigger + "Price")
         else:
             raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
                                       "Choose from Mark, Last and Index.")
-        _for_each_account(accounts, api.order_post, **params)
+        params["execInst"] = ", ".join(execInst)
+        _for_each_account(accountNames, api.order_post, **params)
 
 
 def order_stop_limit(accountNames, symbol, quantity, limitPrice, stopPrice,
@@ -695,30 +699,32 @@ def order_limit_relative(accountNames, symbol, percent, limitPrice,
     execInst = []
     if reduceOnly:
         execInst.append("ReduceOnly")
-    execInst = ", ".join(execInst)
 
     params = {
         "symbol": symbol,
         "ordType": "Limit",
         # "orderQty": quantity, (will be added in _for_each_relative)
         "price": limitPrice,
-        "execInst": execInst,
+        "execInst": ", ".join(execInst),
         "timeInForce": timeInForce,
         "side": "Sell" if sell else "Buy"
     }
     # Send orders
-    responses = _for_each_relative(accountNames, func, percent, marginPerContract,
+    responses = _for_each_relative(accountNames, api.order_post, percent, marginPerContract,
                                    **params)
     # Stop loss
+    execInst = ["ReduceOnly"]
     if stopLoss:
-        params["ordType"] = "StopLimit"
-        params["price"] = stopPrice
+        params.pop("price")
+        params["ordType"] = "Stop"
+        params["stopPx"] = stopPrice
         params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
         if trigger in ("Mark", "Last", "Index"):
             execInst.append(trigger + "Price")
         else:
             raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
                                       "Choose from Mark, Last and Index.")
+        params["execInst"] = ", ".join(execInst)
         for response in responses:
             account = response["account"]["name"]
             orderQty = response["response"]["orderQty"]
@@ -761,33 +767,35 @@ def order_limit_relative_post_only(accountNames, symbol, percent, limitPrice,
     execInst.append("ParticipateDoNotInitiate")
     if reduceOnly:
         execInst.append("ReduceOnly")
-    execInst = ", ".join(execInst)
 
     params = {
         "symbol": symbol,
         "ordType": "Limit",
         # "orderQty": quantity, (will be added in _for_each_relative)
         "price": limitPrice,
-        "execInst": execInst,
+        "execInst": ", ".join(execInst),
         "side": "Sell" if sell else "Buy"
     }
     responses = _for_each_relative(accountNames, api.order_post, percent, marginPerContract,
                                    **params)
     # Stop loss
+    execInst = ["ReduceOnly"]
     if stopLoss:
-        params["ordType"] = "StopLimit"
-        params["price"] = stopPrice
+        params.pop("price")
+        params["ordType"] = "Stop"
+        params["stopPx"] = stopPrice
         params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
         if trigger in ("Mark", "Last", "Index"):
             execInst.append(trigger + "Price")
+            params["execInst"] = ", ".join(execInst)
         else:
             raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
                                       "Choose from Mark, Last and Index.")
-            for response in responses:
-                account = response["account"]["name"]
-                orderQty = response["response"]["orderQty"]
-                params["orderQty"] = orderQty
-                _for_one_account(account, api.order_post, **params)
+        for response in responses:
+            account = response["account"]["name"]
+            orderQty = response["response"]["orderQty"]
+            params["orderQty"] = orderQty
+            _for_one_account(account, api.order_post, **params)
 
 
 def order_stop_limit_relative(accountNames, symbol, percent, limitPrice, stopPrice,
@@ -1066,17 +1074,19 @@ def order_market(accountNames, symbol, quantity, sell=False, stopLoss=False,
     }
     _for_each_account(accountNames, api.order_post, **params)
     # Stop loss
+    execInst = ["ReduceOnly"]
     if stopLoss:
-        params["ordType"] = "StopLimit"
-        params["price"] = stopPrice
+        params.pop("price")
+        params["ordType"] = "Stop"
+        params["stopPx"] = stopPrice
         params["side"] = "Buy" if params["side"] == "Sell" else "Sell"
-        execInst = ""
         if trigger in ("Mark", "Last", "Index"):
             execInst.append(trigger + "Price")
+            params["execInst"] = ", ".join(execInst)
         else:
             raise BitmexCoreException(str(trigger) + " isn't a valid trigger. " +
                                       "Choose from Mark, Last and Index.")
-        _for_each_account(accounts, api.order_post, **params)
+        _for_each_account(accountNames, api.order_post, **params)
 
 
 def order_stop_market(accountNames, symbol, quantity, stopPrice, sell=False,

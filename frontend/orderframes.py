@@ -290,9 +290,9 @@ class StopLoss(tkinter.Frame):
         self.typeVar.set(self.TRIGGER_TYPES[1])
 
         stopCheck = tkinter.Checkbutton(self, text="Stop loss", var=self.stopVar)
-        pxLabel = tkinter.Label(self, text="Trigger Price:")
+        pxLabel = tkinter.Label(self, text="Stop Loss Price:")
         self.pxSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT)
-        typeLabel = tkinter.Label(self, text="Trigger Type:")
+        typeLabel = tkinter.Label(self, text="Stop Loss Type:")
         typeOption = tkinter.OptionMenu(self, self.typeVar, *self.TRIGGER_TYPES)
         typeOption.configure(**self.OPTION_PARAMS)
 
