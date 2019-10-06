@@ -319,3 +319,24 @@ class StopLoss(tkinter.Frame):
         Returns currently selected string in trigger type menu.
         """
         return str(self.typeVar.get())
+
+
+class LossCalc(tkinter.Frame):
+    """
+    Frame for calculating potential loss if stop loss has to go off.
+    """
+
+    def __init__(self, parent, window, *args, **kvargs):
+        tkinter.Frame.__init__(self, parent, *args, **kvargs)
+
+        labelFrame = tkinter.Frame(self)
+
+        textLabel = tkinter.Label(labelFrame, text="Potential loss:")
+        self.numLabel = tkinter.Label(labelFrame, text="0")
+        calcButton = tkinter.Button(self, text="Calculate potential loss",
+                                    command=lambda: window.calculate())
+
+        textLabel.grid(column=0, row=0)
+        self.numLabel.grid(column=1, row=0)
+        labelFrame.pack()
+        calcButton.pack()

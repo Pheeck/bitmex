@@ -281,8 +281,10 @@ class Limit(AbstractOrder):
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
         self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
+        self.lossCalcFrame = orderframes.LossCalc(self.leftFrame, self)
         self.limitFrame.pack()
         self.stopLossFrame.pack()
+        self.lossCalcFrame.pack()
 
     def send(self, sell=False):
         accountNames = self.accFrame.get_names()
@@ -310,6 +312,9 @@ class Limit(AbstractOrder):
             core.order_limit(accountNames, symbol, quantity, limitPrice, sell,
                              hidden, displayQty, timeInForce, reduceOnly,
                              stopLoss=stopLoss, **stopLossParams)
+
+    def calculate(self):
+        pass  # TODO: calculates potential loss and updates the loss calc label
 
 
 class TriggerLimit(AbstractOrder):
