@@ -275,6 +275,7 @@ class Limit(AbstractOrder):
     """
 
     TITLE = "New Limit Order"
+    SIGNIFICANT_FIGURES = 5
 
     def __init__(self, *args, **kvargs):
         AbstractOrder.__init__(self, *args, **kvargs)
@@ -313,8 +314,43 @@ class Limit(AbstractOrder):
                              hidden, displayQty, timeInForce, reduceOnly,
                              stopLoss=stopLoss, **stopLossParams)
 
-    def calculate(self):
-        pass  # TODO: calculates potential loss and updates the loss calc label
+    def calculate(self, short=False):
+        """
+        Calculates potential loss and updates loss calc label
+        """
+        # Get values
+        symbol = self.mainFrame.get_symbol()
+        qty = float(self.mainFrame.get_qty())
+        entryPx = float(self.limitFrame.get_limit_price())
+        exitPx = float(self.stopLossFrame.get_trigger_price())
+
+        if symbol == "":
+            tkinter.messagebox.showerror("Error", "Symbol is required.")
+
+        # Calculation
+        try:
+            foo = accounts.get_all()[0]["name"]
+            inverse = core.instrument_is_inverse(foo, symbol)
+            entryValue = core.instrument_margin_per_contract(foo, symbol, entryPx)
+            exitValue = core.instrument_margin_per_contract(foo, symbol, exitPx)
+        except Exception as e:
+            tkinter.messagebox.showerror("Error", str(e))
+            raise e
+        entryValue *= qty
+        exitValue *= qty
+
+        if short != inverse:  # Note that we are calculating loss, not profit
+            # Short or (Long with inverse)stopLossFrame
+            loss = exitValue - entryValue
+        else:
+            # Long or (Short with inverse)
+            loss = entryValue - exitValue
+        percent = loss / entryValue * 100
+        percent = significant_figures(percent, self.SIGNIFICANT_FIGURES)
+
+        # Set values
+        self.lossCalcFrame.set_loss(loss)
+        self.lossCalcFrame.set_percent(percent)
 
 
 class TriggerLimit(AbstractOrder):
@@ -1649,10 +1685,10 @@ class Calculator(AbstractChild):
         exitValue *= qty
 
         if short != inverse:
-            # Short or long + inverse
+            # Short or (Long with inverse)
             pnl = entryValue - exitValue
         else:
-            # Long or short + inverse
+            # Long or (Short + inverse)
             pnl = exitValue - entryValue
         percent = pnl / entryValue * 100
         percent = significant_figures(percent, self.SIGNIFICANT_FIGURES)

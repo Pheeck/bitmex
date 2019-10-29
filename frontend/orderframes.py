@@ -329,14 +329,30 @@ class LossCalc(tkinter.Frame):
     def __init__(self, parent, window, *args, **kvargs):
         tkinter.Frame.__init__(self, parent, *args, **kvargs)
 
-        labelFrame = tkinter.Frame(self)
-
-        textLabel = tkinter.Label(labelFrame, text="Potential loss:")
-        self.numLabel = tkinter.Label(labelFrame, text="0")
-        calcButton = tkinter.Button(self, text="Calculate potential loss",
-                                    command=lambda: window.calculate())
+        textLabel = tkinter.Label(self, text="Potential loss:")
+        self.numLabel = tkinter.Label(self, text="0")
+        pctTextLabel = tkinter.Label(self, text="Potential loss %:")
+        self.pctNumLabel = tkinter.Label(self, text="0")
+        longButton = tkinter.Button(self, text="Calculate long",
+                                    command=lambda: window.calculate(short=False))
+        shortButton = tkinter.Button(self, text="Calculate short",
+                                     command=lambda: window.calculate(short=True))
 
         textLabel.grid(column=0, row=0)
         self.numLabel.grid(column=1, row=0)
-        labelFrame.pack()
-        calcButton.pack()
+        pctTextLabel.grid(column=0, row=1)
+        self.pctNumLabel.grid(column=1, row=1)
+        longButton.grid(column=0, row=2)
+        shortButton.grid(column=1, row=2)
+
+    def set_loss(self, loss):
+        """
+        Sets currently displayed calculated loss.
+        """
+        self.numLabel.configure(text=str(loss))
+
+    def set_percent(self, percent):
+        """
+        Sets currently displayed calculated loss in percent.
+        """
+        self.pctNumLabel.configure(text=str(percent))
