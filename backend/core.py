@@ -115,7 +115,7 @@ def _for_each_relative(accountNames, call, percent, marginPerContract,
             coreExc.tracebacks.append(exc_info()[0])
             continue
         # Compute order quantity
-        orderValue = percent / 100.0 * available
+        orderValue = percent / 100.0 * available  # * leverage
         orderQty = orderValue / marginPerContract
         orderQty = round(orderQty)
         params["orderQty"] = orderQty
