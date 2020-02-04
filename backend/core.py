@@ -188,6 +188,36 @@ def account_available_margin(accountName):
     return response["availableMargin"] * 1e-8
 
 
+def account_margin_stats(accountNames):
+    """
+    Get account margin statistics for each account (monetary values in bitcoins).
+
+    accountNames:       list of names of accounts to use
+
+    Returns list of {
+        "name": str,
+        "stats": {
+            "availableMargin": float
+        }
+    }.
+    """
+    result = []
+    params = {
+        "currency": "XBt"
+    }
+
+    data = _for_each_account(accountNames, api.user_margin_get, **params)
+    for foo in data:  # for each account
+        account = {
+            "name": foo["name"],
+            "stats": {
+                "availableMargin": float(foo["response"]["availableMargin"])
+            }
+        }
+        result.append(account)
+    return result
+
+
 #
 # Instruments
 #
