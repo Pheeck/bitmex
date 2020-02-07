@@ -195,9 +195,10 @@ def account_margin_stats(accountNames):
     accountNames:       list of names of accounts to use
 
     Returns list of {
-        "name": str,
+        "account": str,
         "stats": {
             "availableMargin": float
+            "unrealisedPnl": float
         }
     }.
     """
@@ -209,9 +210,11 @@ def account_margin_stats(accountNames):
     data = _for_each_account(accountNames, api.user_margin_get, **params)
     for foo in data:  # for each account
         account = {
-            "name": foo["name"],
+            "name": foo["account"]["name"],
             "stats": {
-                "availableMargin": float(foo["response"]["availableMargin"])
+                "availableMargin": float(foo["response"]["availableMargin"]),
+                "unrealisedPnl": significant_figures(foo["response"]["unrealisedPnl"] * 1e-8,
+                                                     SIGNIFICANT_FIGURES),
             }
         }
         result.append(account)
