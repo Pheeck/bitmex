@@ -9,6 +9,13 @@ import backend.accounts as accounts
 
 
 #
+# Constants
+#
+
+SPINBOX_LIMIT = 1000000000
+
+
+#
 # Classes
 #
 
@@ -296,4 +303,125 @@ class Order(tkinter.Frame):
     Frame for creating new orders.
     """
 
-    pass
+    COMBO_PARAMS = {
+        "width": 9
+    }
+    SPINBOX_PARAMS = {
+        "width": 9
+    }
+    BUTTON_PARAMS = {
+        "width": 15
+    }
+
+    def __init__(self, *args, **kvargs):
+        tkinter.Frame.__init__(self, *args, **kvargs)
+
+        self.accFrame = tkinter.Frame(self)
+        self.mainFrame = tkinter.Frame(self)
+
+        self._init_acc()
+        self._init_main()
+
+        self.accFrame.pack()
+        self.mainFrame.pack()
+
+        self.isAlive = True
+
+    def _init_acc(self):
+        """
+        Initiate accounts frame. Internal method.
+        """
+        leftFrame = tkinter.Frame(self.accFrame)
+        rightFrame = tkinter.Frame(self.accFrame)
+
+        label = tkinter.Label(leftFrame, text="Select Accounts:")
+        label.pack()
+
+        self.accFrame.names = []
+        self.accFrame.vars = []
+
+        for i, account in enumerate(accounts.get_all()):
+            name = account["name"]
+            var = tkinter.IntVar(self.accFrame)
+
+            check = tkinter.Checkbutton(rightFrame, text=name, var=var)
+            check.grid(column=i, row=0)
+
+            self.accFrame.names.append(name)
+            self.accFrame.vars.append(var)
+
+        leftFrame.grid(column=0, row=0)
+        rightFrame.grid(column=1, row=0)
+
+    def _init_main(self):
+        """
+        Initiate main frame. Internal method.
+        """
+        # Backend
+        try:
+            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+            openInstruments.sort()
+        except Exception as e:
+            print(e)
+            openInstruments = []
+
+        # Frontend
+        self.symbolVar = tkinter.StringVar(self.mainFrame)
+
+        symbolLabel = tkinter.Label(self.mainFrame, text="Symbol:")
+        symbolCombo = tkinter.ttk.Combobox(self.mainFrame, textvariable=self.symbolVar,
+                                           **self.COMBO_PARAMS)
+        symbolCombo["values"] = openInstruments
+        self.qtyLabel = tkinter.Label(self.mainFrame, text="Quantity:")
+        self.qtySpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
+                                       **self.SPINBOX_PARAMS)
+        buyButton = tkinter.Button(self.mainFrame, text="Buy/Long",
+                                   command=lambda: window._send(sell=False),
+                                   **self.BUTTON_PARAMS)
+        sellButton = tkinter.Button(self.mainFrame, text="Sell/Short",
+                                    command=lambda: window._send(sell=True),
+                                    **self.BUTTON_PARAMS)
+
+        symbolLabel.grid(column=0, row=0)
+        symbolCombo.grid(column=1, row=0)
+        self.qtyLabel.grid(column=0, row=1)
+        self.qtySpin.grid(column=1, row=1)
+        buyButton.grid(column=0, row=2)
+        sellButton.grid(column=1, row=2)
+
+    def _send(self, sell=False):  # TODO skloubit nějak s ruznymi sendy
+        """
+        send() but wrapped in try-catch and checking if any accounts are acually
+        selected. Internal method.
+        """
+        names = self.accFrame.get_names()
+        if not names:
+            tkinter.messagebox.showerror("Error", "No accounts are selected.")
+            raise BitmexGUIException("No accounts are selected.")
+        try:
+            self.send(sell)
+        except Exception as e:
+            tkinter.messagebox.showerror("Error", str(e))
+            raise e
+
+    def send(self, sell=False):  # TODO nahradit funkcemi nize
+        """
+        Query api to send order.
+        """
+        pass
+
+    def send_market(self, sell=False):  # TODO (btw, triggery asi zatim ne)
+        pass
+
+    def send_limit(self, sell=False):  # TODO
+        pass
+
+    def send_relative(self, sell=False):  # TODO
+        pass
+
+    def quit(self):
+        """
+        Cleans up and kills the window.
+        """
+        self.isAlive = False
+        self.after(DESTROY_DELAY, self.destroy)

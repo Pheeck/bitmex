@@ -1094,10 +1094,10 @@ def order_market(accountNames, symbol, quantity, sell=False, stopLoss=False,
     symbol:         symbol of position
     quantity:       how many contracts in each order
     sell:           true for sell order, false for buy order
-    reduceOnly: true for reduce-only order which won't increase position
-    stopLoss:           if set to true, also create mirroring close stop orders
-    stopPrice:          trigger price of stop loss order
-    trigger:            trigger type of stop loss order
+    reduceOnly:     true for reduce-only order which won't increase position
+    stopLoss:       if set to true, also create mirroring close stop orders
+    stopPrice:      trigger price of stop loss order
+    trigger:        trigger type of stop loss order
     """
     params = {
         "symbol": symbol,
