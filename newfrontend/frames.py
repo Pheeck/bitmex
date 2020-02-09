@@ -312,18 +312,24 @@ class Order(tkinter.Frame):
     BUTTON_PARAMS = {
         "width": 15
     }
+    LABEL_PARAMS = {
+        "width": 10
+    }
 
     def __init__(self, *args, **kvargs):
         tkinter.Frame.__init__(self, *args, **kvargs)
 
         self.accFrame = tkinter.Frame(self)
         self.mainFrame = tkinter.Frame(self)
+        self.buttonFrame = tkinter.Frame(self)
 
         self._init_acc()
         self._init_main()
+        self._init_button()
 
         self.accFrame.pack()
         self.mainFrame.pack()
+        self.buttonFrame.pack()
 
         self.isAlive = True
 
@@ -368,31 +374,77 @@ class Order(tkinter.Frame):
         # Frontend
         self.symbolVar = tkinter.StringVar(self.mainFrame)
 
-        symbolLabel = tkinter.Label(self.mainFrame, text="Symbol:")
+        symbolLabel = tkinter.Label(self.mainFrame, text="Symbol",
+                                    **self.LABEL_PARAMS)
+        qtyLabel = tkinter.Label(self.mainFrame, text="Quantity",
+                                 **self.LABEL_PARAMS)
+        levLabel = tkinter.Label(self.mainFrame, text="Leverage",
+                                 **self.LABEL_PARAMS)
+        pxLabel = tkinter.Label(self.mainFrame, text="Limit Price",
+                                **self.LABEL_PARAMS)
+        pctLabel = tkinter.Label(self.mainFrame, text="%",
+                                 **self.LABEL_PARAMS)
+        entryLabel = tkinter.Label(self.mainFrame, text="Entry Price",
+                                   **self.LABEL_PARAMS)
+        exitLabel = tkinter.Label(self.mainFrame, text="Exit Price",
+                                  **self.LABEL_PARAMS)
+        stopLabel = tkinter.Label(self.mainFrame, text="Stop Price",
+                                  **self.LABEL_PARAMS)
+
         symbolCombo = tkinter.ttk.Combobox(self.mainFrame, textvariable=self.symbolVar,
                                            **self.COMBO_PARAMS)
         symbolCombo["values"] = openInstruments
-        self.qtyLabel = tkinter.Label(self.mainFrame, text="Quantity:")
         self.qtySpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
                                        **self.SPINBOX_PARAMS)
-        buyButton = tkinter.Button(self.mainFrame, text="Buy/Long",
+        self.levSpin = tkinter.Spinbox(self.mainFrame, from_=0, to=1000,
+                                       **self.SPINBOX_PARAMS)
+        self.pxSpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
+                                      **self.SPINBOX_PARAMS)
+        self.entryLabel = tkinter.Label(self.mainFrame, text="0")
+        self.exitLabel = tkinter.Label(self.mainFrame, text="0")
+        self.stopSpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
+                                        **self.SPINBOX_PARAMS)
+
+        symbolLabel.grid(column=0, row=0)
+        qtyLabel.grid(column=1, row=0)
+        levLabel.grid(column=2, row=0)
+        pxLabel.grid(column=3, row=0)
+        entryLabel.grid(column=4, row=0)
+        exitLabel.grid(column=5, row=0)
+        stopLabel.grid(column=6, row=0)
+
+        symbolCombo.grid(column=0, row=1)
+        self.qtySpin.grid(column=1, row=1)
+        #self.levSpin.grid(column=2, row=1)
+        self.pxSpin.grid(column=3, row=1)
+        #self.entryLabel.grid(column=4, row=1)
+        #self.exitLabel.grid(column=5, row=1)
+        self.stopSpin.grid(column=6, row=1)
+
+    def _init_button(self):
+        """
+        Initiate button frame. Internal method.
+        """
+        buyButton = tkinter.Button(self.buttonFrame, text="Buy/Long",
                                    command=lambda: window._send(sell=False),
                                    **self.BUTTON_PARAMS)
-        sellButton = tkinter.Button(self.mainFrame, text="Sell/Short",
+        sellButton = tkinter.Button(self.buttonFrame, text="Sell/Short",
                                     command=lambda: window._send(sell=True),
                                     **self.BUTTON_PARAMS)
 
-        symbolLabel.grid(column=0, row=0)
-        symbolCombo.grid(column=1, row=0)
-        self.qtyLabel.grid(column=0, row=1)
-        self.qtySpin.grid(column=1, row=1)
-        buyButton.grid(column=0, row=2)
-        sellButton.grid(column=1, row=2)
+        buyButton.grid(column=0, row=0)
+        sellButton.grid(column=1, row=0)
 
-    def _send(self, sell=False):  # TODO skloubit nějak s ruznymi sendy
+    def send(self, sell=False):  # TODO
         """
-        send() but wrapped in try-catch and checking if any accounts are acually
-        selected. Internal method.
+        Recognize, which kind of order to send and send it.
+        """
+        pass
+
+    def _send(self, function, sell=False):
+        """
+        Wrapper for send methods with try-catch and checking if any accounts
+        are acually selected. Internal method.
         """
         names = self.accFrame.get_names()
         if not names:
@@ -404,19 +456,22 @@ class Order(tkinter.Frame):
             tkinter.messagebox.showerror("Error", str(e))
             raise e
 
-    def send(self, sell=False):  # TODO nahradit funkcemi nize
+    def _send_market(self, sell=False):  # TODO (btw, triggery asi zatim ne)
         """
-        Query api to send order.
+        Query api to send market order. Internal method.
         """
-        pass
-
-    def send_market(self, sell=False):  # TODO (btw, triggery asi zatim ne)
         pass
 
     def send_limit(self, sell=False):  # TODO
+        """
+        Query api to send limit order. Internal method.
+        """
         pass
 
     def send_relative(self, sell=False):  # TODO
+        """
+        Query api to send relative order. Internal method.
+        """
         pass
 
     def quit(self):
