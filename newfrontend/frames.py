@@ -7,6 +7,8 @@ import tkinter
 import backend.core as core
 import backend.accounts as accounts
 
+from backend.exceptions import BitmexGUIException
+
 
 #
 # Constants
@@ -303,6 +305,8 @@ class Order(tkinter.Frame):
     Frame for creating new orders.
     """
 
+    TRIGGER_TYPE = "Last"
+
 
     class Accounts(tkinter.Frame):
         """
@@ -357,8 +361,13 @@ class Order(tkinter.Frame):
             "width": 9
         }
         LABEL_PARAMS = {
-            "width": 10
+            "width": 12
         }
+        PRIORITY_SYMBOLS = (
+            "XBTUSD",
+            "ETHUSD"
+        )
+        DEFAULT_PX = 10000
 
         def __init__(self, *args, **kvargs):
             tkinter.Frame.__init__(self, *args, **kvargs)
@@ -366,13 +375,25 @@ class Order(tkinter.Frame):
             # Backend
             try:
                 openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
-                openInstruments.sort()
             except Exception as e:
                 print(e)
                 openInstruments = []
 
+            openInstruments.sort()
+            # Priority symbols at top of list if they exist
+            for symbol in self.PRIORITY_SYMBOLS[::-1]:
+                if symbol in openInstruments:
+                    openInstruments.remove(symbol)
+                    openInstruments.insert(0, symbol)
+
             # Frontend
             self.symbolVar = tkinter.StringVar(self)
+            self.limitVar = tkinter.IntVar(self)
+            self.stopVar = tkinter.IntVar(self)
+
+            self.symbolVar.set(openInstruments[0])
+            self.limitVar.set(1)
+            self.stopVar.set(1)
 
             symbolLabel = tkinter.Label(self, text="Symbol",
                                         **self.LABEL_PARAMS)
@@ -380,16 +401,28 @@ class Order(tkinter.Frame):
                                      **self.LABEL_PARAMS)
             levLabel = tkinter.Label(self, text="Leverage",
                                      **self.LABEL_PARAMS)
-            pxLabel = tkinter.Label(self, text="Limit Price",
-                                    **self.LABEL_PARAMS)
+            pxLabel = tkinter.Checkbutton(self, text="Limit Price",
+                                          var=self.limitVar,  # dirty hack ahead
+                                          command=lambda: self.pxSpin.configure(
+                                            state=\
+                                            tkinter.NORMAL if self.limitVar.get()
+                                            else tkinter.DISABLED
+                                          ),  # end of dirty hack
+                                          **self.LABEL_PARAMS)
             pctLabel = tkinter.Label(self, text="%",
                                      **self.LABEL_PARAMS)
             entryLabel = tkinter.Label(self, text="Entry Price",
                                        **self.LABEL_PARAMS)
             exitLabel = tkinter.Label(self, text="Exit Price",
                                       **self.LABEL_PARAMS)
-            stopLabel = tkinter.Label(self, text="Stop Price",
-                                      **self.LABEL_PARAMS)
+            stopLabel = tkinter.Checkbutton(self, text="Stop Price",
+                                            var=self.stopVar,  # dirty hack ahead
+                                            command=lambda: self.stopSpin.configure(
+                                              state=\
+                                              tkinter.NORMAL if self.stopVar.get()
+                                              else tkinter.DISABLED
+                                            ),  # end of dirty hack
+                                            **self.LABEL_PARAMS)
 
             symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
                                                **self.COMBO_PARAMS)
@@ -397,12 +430,15 @@ class Order(tkinter.Frame):
             self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
                                            **self.SPINBOX_PARAMS)
             self.levSpin = tkinter.Spinbox(self, from_=0, to=1000,
+                                           state=tkinter.DISABLED,
                                            **self.SPINBOX_PARAMS)
             self.pxSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
+                                          value=self.DEFAULT_PX,
                                           **self.SPINBOX_PARAMS)
-            self.entryLabel = tkinter.Label(self, text="0")
-            self.exitLabel = tkinter.Label(self, text="0")
+            self.entryLabel = tkinter.Label(self, text="0", state=tkinter.DISABLED)
+            self.exitLabel = tkinter.Label(self, text="0", state=tkinter.DISABLED)
             self.stopSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
+                                            value=self.DEFAULT_PX,
                                             **self.SPINBOX_PARAMS)
 
             symbolLabel.grid(column=0, row=0)
@@ -415,10 +451,10 @@ class Order(tkinter.Frame):
 
             symbolCombo.grid(column=0, row=1)
             self.qtySpin.grid(column=1, row=1)
-            #self.levSpin.grid(column=2, row=1)
+            self.levSpin.grid(column=2, row=1)
             self.pxSpin.grid(column=3, row=1)
-            #self.entryLabel.grid(column=4, row=1)
-            #self.exitLabel.grid(column=5, row=1)
+            self.entryLabel.grid(column=4, row=1)
+            self.exitLabel.grid(column=5, row=1)
             self.stopSpin.grid(column=6, row=1)
 
         def get_symbol(self):
@@ -433,13 +469,25 @@ class Order(tkinter.Frame):
             """
             return float(self.qtySpin.get())
 
-        def get_price(self):
+        def get_limit(self):
+            """
+            Returns whether limit checkbox is checked.
+            """
+            return bool(self.limitVar.get())
+
+        def get_px(self):
             """
             Returns current number in limit price spinbox.
             """
             return float(self.pxSpin.get())
 
         def get_stop(self):
+            """
+            Returns whether stop checkbox is checked.
+            """
+            return bool(self.stopVar.get())
+
+        def get_stop_px(self):
             """
             Returns current number in stop price spinbox.
             """
@@ -480,11 +528,14 @@ class Order(tkinter.Frame):
         self.mainFrame.pack()
         self.buttonFrame.pack()
 
-    def send(self, sell=False):  # TODO Aby to vazne rozpoznavalo a aby si to gettlo parametry spolecne pro vic sendu
+    def send(self, sell=False):
         """
         Recognize, which kind of order to send and send it.
         """
-        self.send_limit(sell)
+        if self.mainFrame.get_limit():
+            self.send_limit(sell)
+        else:
+            self.send_market(sell)
 
     def _send(self, sell=False):
         """
@@ -501,31 +552,43 @@ class Order(tkinter.Frame):
             tkinter.messagebox.showerror("Error", str(e))
             raise e
 
-    def _send_market(self, sell=False):  # TODO (btw, triggery asi zatim ne)
+    def send_market(self, sell=False):
         """
-        Query api to send market order. Internal method.
-        """
-        pass
-
-    def send_limit(self, sell=False):  # TODO
-        """
-        Query api to send limit order. Internal method.
+        Query api to send market order. Use parameters inputed by user.
         """
         accountNames = self.accFrame.get_names()
         symbol = self.mainFrame.get_symbol()
         quantity = self.mainFrame.get_qty()
-        limitPrice = self.mainFrame.get_price()
         # Handle stop loss
-        stopLossParams = {
-            "stopPrice": self.mainFrame.get_stop(),
-            "trigger": "Last"
-        }
+        stopLoss = self.mainFrame.get_stop()
+        stopLossParams = {}
+        if stopLoss:
+            stopLossParams["stopPrice"] = self.mainFrame.get_stop_px()
+            stopLossParams["trigger"] = self.TRIGGER_TYPE
+        # Send order
+        core.order_market(accountNames, symbol, quantity, sell, stopLoss=stopLoss,
+                          **stopLossParams)
+
+    def send_limit(self, sell=False):
+        """
+        Query api to send limit order. Use parameters inputed by user.
+        """
+        accountNames = self.accFrame.get_names()
+        symbol = self.mainFrame.get_symbol()
+        quantity = self.mainFrame.get_qty()
+        limitPrice = self.mainFrame.get_px()
+        # Handle stop loss
+        stopLoss = self.mainFrame.get_stop()
+        stopLossParams = {}
+        if stopLoss:
+            stopLossParams["stopPrice"] = self.mainFrame.get_stop_px()
+            stopLossParams["trigger"] = self.TRIGGER_TYPE
         # Send order
         core.order_limit(accountNames, symbol, quantity, limitPrice, sell,
-                         stopLoss=True, **stopLossParams)
+                         stopLoss=stopLoss, **stopLossParams)
 
     def send_relative(self, sell=False):  # TODO
         """
-        Query api to send relative order. Internal method.
+        Query api to send relative order. Use parameters inputed by user.
         """
         pass
