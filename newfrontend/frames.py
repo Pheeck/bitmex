@@ -303,145 +303,190 @@ class Order(tkinter.Frame):
     Frame for creating new orders.
     """
 
-    COMBO_PARAMS = {
-        "width": 9
-    }
-    SPINBOX_PARAMS = {
-        "width": 9
-    }
-    BUTTON_PARAMS = {
-        "width": 15
-    }
-    LABEL_PARAMS = {
-        "width": 10
-    }
+
+    class Accounts(tkinter.Frame):
+        """
+        Frame for choosing to which accounts should new order be sent.
+        """
+
+        def __init__(self, *args, **kvargs):
+            tkinter.Frame.__init__(self, *args, **kvargs)
+
+            leftFrame = tkinter.Frame(self)
+            rightFrame = tkinter.Frame(self)
+
+            label = tkinter.Label(leftFrame, text="Select Accounts:")
+            label.pack()
+
+            self.names = []
+            self.vars = []
+
+            for i, account in enumerate(accounts.get_all()):
+                name = account["name"]
+                var = tkinter.IntVar(self)
+
+                check = tkinter.Checkbutton(rightFrame, text=name, var=var)
+                check.grid(column=i, row=0)
+
+                self.names.append(name)
+                self.vars.append(var)
+
+            leftFrame.grid(column=0, row=0)
+            rightFrame.grid(column=1, row=0)
+
+        def get_names(self):
+            """
+            Returns currently selected account names.
+            """
+            result = []
+            for name, var in zip(self.names, self.vars):
+                if var.get():
+                    result.append(str(name))
+            return result
+
+
+    class Main(tkinter.Frame):
+        """
+        Frame for specifying details of new order.
+        """
+
+        COMBO_PARAMS = {
+            "width": 9
+        }
+        SPINBOX_PARAMS = {
+            "width": 9
+        }
+        LABEL_PARAMS = {
+            "width": 10
+        }
+
+        def __init__(self, *args, **kvargs):
+            tkinter.Frame.__init__(self, *args, **kvargs)
+
+            # Backend
+            try:
+                openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+                openInstruments.sort()
+            except Exception as e:
+                print(e)
+                openInstruments = []
+
+            # Frontend
+            self.symbolVar = tkinter.StringVar(self)
+
+            symbolLabel = tkinter.Label(self, text="Symbol",
+                                        **self.LABEL_PARAMS)
+            qtyLabel = tkinter.Label(self, text="Quantity",
+                                     **self.LABEL_PARAMS)
+            levLabel = tkinter.Label(self, text="Leverage",
+                                     **self.LABEL_PARAMS)
+            pxLabel = tkinter.Label(self, text="Limit Price",
+                                    **self.LABEL_PARAMS)
+            pctLabel = tkinter.Label(self, text="%",
+                                     **self.LABEL_PARAMS)
+            entryLabel = tkinter.Label(self, text="Entry Price",
+                                       **self.LABEL_PARAMS)
+            exitLabel = tkinter.Label(self, text="Exit Price",
+                                      **self.LABEL_PARAMS)
+            stopLabel = tkinter.Label(self, text="Stop Price",
+                                      **self.LABEL_PARAMS)
+
+            symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
+                                               **self.COMBO_PARAMS)
+            symbolCombo["values"] = openInstruments
+            self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
+                                           **self.SPINBOX_PARAMS)
+            self.levSpin = tkinter.Spinbox(self, from_=0, to=1000,
+                                           **self.SPINBOX_PARAMS)
+            self.pxSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
+                                          **self.SPINBOX_PARAMS)
+            self.entryLabel = tkinter.Label(self, text="0")
+            self.exitLabel = tkinter.Label(self, text="0")
+            self.stopSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
+                                            **self.SPINBOX_PARAMS)
+
+            symbolLabel.grid(column=0, row=0)
+            qtyLabel.grid(column=1, row=0)
+            levLabel.grid(column=2, row=0)
+            pxLabel.grid(column=3, row=0)
+            entryLabel.grid(column=4, row=0)
+            exitLabel.grid(column=5, row=0)
+            stopLabel.grid(column=6, row=0)
+
+            symbolCombo.grid(column=0, row=1)
+            self.qtySpin.grid(column=1, row=1)
+            #self.levSpin.grid(column=2, row=1)
+            self.pxSpin.grid(column=3, row=1)
+            #self.entryLabel.grid(column=4, row=1)
+            #self.exitLabel.grid(column=5, row=1)
+            self.stopSpin.grid(column=6, row=1)
+
+        def get_symbol(self):
+            """
+            Returns current text in symbol entry.
+            """
+            return str(self.symbolVar.get())
+
+        def get_qty(self):
+            """
+            Returns current number in quantity spinbox.
+            """
+            return float(self.qtySpin.get())
+
+        def get_price(self):
+            """
+            Returns current number in limit price spinbox.
+            """
+            return float(self.pxSpin.get())
+
+        def get_stop(self):
+            """
+            Returns current number in stop price spinbox.
+            """
+            return float(self.stopSpin.get())
+
+
+    class Buttons(tkinter.Frame):
+        """
+        Frame with buy and sell buttons. Used to send new order.
+        """
+
+        BUTTON_PARAMS = {
+            "width": 15
+        }
+
+        def __init__(self, parent, *args, **kvargs):
+            tkinter.Frame.__init__(self, parent, *args, **kvargs)
+
+            buyButton = tkinter.Button(self, text="Buy/Long",
+                                       command=lambda: parent._send(sell=False),
+                                       **self.BUTTON_PARAMS)
+            sellButton = tkinter.Button(self, text="Sell/Short",
+                                        command=lambda: parent._send(sell=True),
+                                        **self.BUTTON_PARAMS)
+
+            buyButton.grid(column=0, row=0)
+            sellButton.grid(column=1, row=0)
+
 
     def __init__(self, *args, **kvargs):
         tkinter.Frame.__init__(self, *args, **kvargs)
 
-        self.accFrame = tkinter.Frame(self)
-        self.mainFrame = tkinter.Frame(self)
-        self.buttonFrame = tkinter.Frame(self)
-
-        self._init_acc()
-        self._init_main()
-        self._init_button()
+        self.accFrame = self.Accounts(self)
+        self.mainFrame = self.Main(self)
+        self.buttonFrame = self.Buttons(self)
 
         self.accFrame.pack()
         self.mainFrame.pack()
         self.buttonFrame.pack()
 
-        self.isAlive = True
-
-    def _init_acc(self):
-        """
-        Initiate accounts frame. Internal method.
-        """
-        leftFrame = tkinter.Frame(self.accFrame)
-        rightFrame = tkinter.Frame(self.accFrame)
-
-        label = tkinter.Label(leftFrame, text="Select Accounts:")
-        label.pack()
-
-        self.accFrame.names = []
-        self.accFrame.vars = []
-
-        for i, account in enumerate(accounts.get_all()):
-            name = account["name"]
-            var = tkinter.IntVar(self.accFrame)
-
-            check = tkinter.Checkbutton(rightFrame, text=name, var=var)
-            check.grid(column=i, row=0)
-
-            self.accFrame.names.append(name)
-            self.accFrame.vars.append(var)
-
-        leftFrame.grid(column=0, row=0)
-        rightFrame.grid(column=1, row=0)
-
-    def _init_main(self):
-        """
-        Initiate main frame. Internal method.
-        """
-        # Backend
-        try:
-            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
-            openInstruments.sort()
-        except Exception as e:
-            print(e)
-            openInstruments = []
-
-        # Frontend
-        self.symbolVar = tkinter.StringVar(self.mainFrame)
-
-        symbolLabel = tkinter.Label(self.mainFrame, text="Symbol",
-                                    **self.LABEL_PARAMS)
-        qtyLabel = tkinter.Label(self.mainFrame, text="Quantity",
-                                 **self.LABEL_PARAMS)
-        levLabel = tkinter.Label(self.mainFrame, text="Leverage",
-                                 **self.LABEL_PARAMS)
-        pxLabel = tkinter.Label(self.mainFrame, text="Limit Price",
-                                **self.LABEL_PARAMS)
-        pctLabel = tkinter.Label(self.mainFrame, text="%",
-                                 **self.LABEL_PARAMS)
-        entryLabel = tkinter.Label(self.mainFrame, text="Entry Price",
-                                   **self.LABEL_PARAMS)
-        exitLabel = tkinter.Label(self.mainFrame, text="Exit Price",
-                                  **self.LABEL_PARAMS)
-        stopLabel = tkinter.Label(self.mainFrame, text="Stop Price",
-                                  **self.LABEL_PARAMS)
-
-        symbolCombo = tkinter.ttk.Combobox(self.mainFrame, textvariable=self.symbolVar,
-                                           **self.COMBO_PARAMS)
-        symbolCombo["values"] = openInstruments
-        self.qtySpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
-                                       **self.SPINBOX_PARAMS)
-        self.levSpin = tkinter.Spinbox(self.mainFrame, from_=0, to=1000,
-                                       **self.SPINBOX_PARAMS)
-        self.pxSpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
-                                      **self.SPINBOX_PARAMS)
-        self.entryLabel = tkinter.Label(self.mainFrame, text="0")
-        self.exitLabel = tkinter.Label(self.mainFrame, text="0")
-        self.stopSpin = tkinter.Spinbox(self.mainFrame, from_=1, to=SPINBOX_LIMIT,
-                                        **self.SPINBOX_PARAMS)
-
-        symbolLabel.grid(column=0, row=0)
-        qtyLabel.grid(column=1, row=0)
-        levLabel.grid(column=2, row=0)
-        pxLabel.grid(column=3, row=0)
-        entryLabel.grid(column=4, row=0)
-        exitLabel.grid(column=5, row=0)
-        stopLabel.grid(column=6, row=0)
-
-        symbolCombo.grid(column=0, row=1)
-        self.qtySpin.grid(column=1, row=1)
-        #self.levSpin.grid(column=2, row=1)
-        self.pxSpin.grid(column=3, row=1)
-        #self.entryLabel.grid(column=4, row=1)
-        #self.exitLabel.grid(column=5, row=1)
-        self.stopSpin.grid(column=6, row=1)
-
-    def _init_button(self):
-        """
-        Initiate button frame. Internal method.
-        """
-        buyButton = tkinter.Button(self.buttonFrame, text="Buy/Long",
-                                   command=lambda: window._send(sell=False),
-                                   **self.BUTTON_PARAMS)
-        sellButton = tkinter.Button(self.buttonFrame, text="Sell/Short",
-                                    command=lambda: window._send(sell=True),
-                                    **self.BUTTON_PARAMS)
-
-        buyButton.grid(column=0, row=0)
-        sellButton.grid(column=1, row=0)
-
-    def send(self, sell=False):  # TODO
+    def send(self, sell=False):  # TODO Aby to vazne rozpoznavalo a aby si to gettlo parametry spolecne pro vic sendu
         """
         Recognize, which kind of order to send and send it.
         """
-        pass
+        self.send_limit(sell)
 
-    def _send(self, function, sell=False):
+    def _send(self, sell=False):
         """
         Wrapper for send methods with try-catch and checking if any accounts
         are acually selected. Internal method.
@@ -466,17 +511,21 @@ class Order(tkinter.Frame):
         """
         Query api to send limit order. Internal method.
         """
-        pass
+        accountNames = self.accFrame.get_names()
+        symbol = self.mainFrame.get_symbol()
+        quantity = self.mainFrame.get_qty()
+        limitPrice = self.mainFrame.get_price()
+        # Handle stop loss
+        stopLossParams = {
+            "stopPrice": self.mainFrame.get_stop(),
+            "trigger": "Last"
+        }
+        # Send order
+        core.order_limit(accountNames, symbol, quantity, limitPrice, sell,
+                         stopLoss=True, **stopLossParams)
 
     def send_relative(self, sell=False):  # TODO
         """
         Query api to send relative order. Internal method.
         """
         pass
-
-    def quit(self):
-        """
-        Cleans up and kills the window.
-        """
-        self.isAlive = False
-        self.after(DESTROY_DELAY, self.destroy)
