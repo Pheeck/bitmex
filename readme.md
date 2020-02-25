@@ -21,3 +21,11 @@
 - Bacha na chybné *requesty*. Když jich *BitMEX* dostane moc, může vaší ip adresu blacklistnout na hodinu nebo případně i na týden.
 - Detaily k vašim účtům se ukládají do souboru `accounts` v této složce (při prvním spuštění se vytvoří). Git ho ignoruje, ale i tak bych si na něj dával pozor.
 - Pokud se nebudou chtít načíst *Positions, Orders, Stop Orders* ani *Order History*, zkontrolujte, jestli jsou všechny klíče, co máte v *Account Managementu*, validní. Případně zkuste jednotlivé účty smazat a znovu je do programu přidat.
+
+## Nový frontend
+
+- Chcete-li program spustit s vyvíjeným alternativním GUI, zadejte mu v příkazové řádce argument `newfrontend`
+```sh
+python3 __main__.py newfrontend
+```
+

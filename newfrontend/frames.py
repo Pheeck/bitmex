@@ -258,8 +258,13 @@ class Positions(tkinter.Frame):
                                          "No account name")
             raise BitmexGUIException("Error closing position: No account name")
 
-        # Send order
-        core.order_market([accName], symbol, quantity, sell)
+        # Confirm close position
+        if tkinter.messagebox.askokcancel("Confirm close position",
+                                          ("Do you wish to close position %s " +
+                                          "belonging to account '%s'?") %
+                                          (symbol, accName)):
+            # Send order
+            core.order_market([accName], symbol, quantity, sell)
 
     def update_positions(self):
         """
