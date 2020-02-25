@@ -230,9 +230,14 @@ class Positions(tkinter.Frame):
         self.dots = self.MIN_DOTS
         self.delay_multiplier = 1  # Will be set higher when request fails
 
+        self.update_accounts()
         self.update_positions()
 
     def close_selected(self, event):
+        """
+        Get information about currently selected item in treeview and query
+        backend to send adequate close position order.
+        """
         try:
             # Get information from treeview
             currItem = self.tree.focus()
@@ -266,10 +271,10 @@ class Positions(tkinter.Frame):
             # Send order
             core.order_market([accName], symbol, quantity, sell)
 
-    def update_positions(self):
+    def update_accounts(self):
         """
-        Query backend for currently open positions and place them into treeview.
-        Sets this function to repeat after UPDATE_SECONDS seconds.
+        Query backend for account list and place them into treeview.
+        Completely clears tree beforehand.
         """
 
         # Clear tree
@@ -277,6 +282,32 @@ class Positions(tkinter.Frame):
 
         # Get all acount names
         names = [x["name"] for x in accounts.get_all()]
+
+        # Fill tree
+        for name in names:
+            item = self.tree.insert("", "end", text=name, open=False,
+                                    values=["" for x in self.VAR])
+
+        self._resize_tree()
+
+    def update_positions(self):
+        """
+        Query backend for currently open positions and place them into treeview.
+        Sets this function to repeat after UPDATE_SECONDS seconds.
+        Requires tree to already be populated with accounts.
+        Clears positions from tree beforehand.
+        """
+
+        # Clear positions from tree
+        for child in self.tree.get_children():
+            positions = self.tree.get_children(child)
+            if positions:
+                self.tree.delete(positions)
+
+        # Get all acount names alredy in treeview
+        names = []
+        for child in self.tree.get_children():
+            names.append(self.tree.item(child)["text"])
 
         # Get info
         success = False
@@ -289,13 +320,10 @@ class Positions(tkinter.Frame):
             self.delay_multiplier += 1
         if success:
             # Fill tree
-            for account in accs:
+            for account, parent in zip(accs, self.tree.get_children()):
                 name = account["name"]
                 positions = account["positions"]
                 positions.sort(key=lambda x: x["symbol"], reverse=False)  # Sort
-
-                parent = self.tree.insert("", "end", text=name, open=True,
-                                          values=["" for x in self.VAR])
 
                 for position in positions:
                     values = []
@@ -304,16 +332,7 @@ class Positions(tkinter.Frame):
 
                     self.tree.insert(parent, "end", text=position["symbol"],
                                      values=values)
-                    #self.tree.insert("", "end", text=position["symbol"],
-                    #                 values=values)
-            # Resize tree
-            new_height = len(self.tree.get_children())
-            if new_height < self.MIN_TREE_HEIGHT:
-                new_height = self.MIN_TREE_HEIGHT
-            if new_height > self.MAX_TREE_HEIGHT:
-                new_height = self.MAX_TREE_HEIGHT
-            self.tree.configure(height=new_height)
-            self.tree.pack()
+            self._resize_tree()
 
             # Update dots
             self.dots += 1
@@ -333,6 +352,18 @@ class Positions(tkinter.Frame):
             delay = int(1000 * (60 * len(names) / self.REQUESTS_PER_MINUTE))
         delay *= self.delay_multiplier
         self._job = self.after(delay, self.update_positions)
+
+    def _resize_tree(self):
+        """
+        Internal method
+        """
+        new_height = len(self.tree.get_children())
+        if new_height < self.MIN_TREE_HEIGHT:
+            new_height = self.MIN_TREE_HEIGHT
+        if new_height > self.MAX_TREE_HEIGHT:
+            new_height = self.MAX_TREE_HEIGHT
+        self.tree.configure(height=new_height)
+        self.tree.pack()
 
 
 class Order(tkinter.Frame):
