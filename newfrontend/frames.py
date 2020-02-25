@@ -71,9 +71,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
         button = tkinter.Button(subframe, text="Update",
                                 command=lambda: self.update_positions())
         check = tkinter.Checkbutton(subframe, var=self.fastVar,
-                                    text="Update faster (should be logged in "
-                                    + "browser client for BitMEX to allow more "
-                                    + "frequent requests)")
+                                    text="Update faster")
         self.label = tkinter.Label(self)
 
         self.tree["columns"] = self.VAR
@@ -207,20 +205,23 @@ class Positions(tkinter.Frame):
         button = tkinter.Button(subframe, text="Update",
                                 command=lambda: self.update_positions())
         check = tkinter.Checkbutton(subframe, var=self.fastVar,
-                                    text="Update faster (should be logged in "
-                                    + "browser client for BitMEX to allow more "
-                                    + "frequent requests)")
+                                    text="Update faster")
+        label = tkinter.Label(subframe, text="Double-click a position to close it")
         self.label = tkinter.Label(self)
 
         self.tree["columns"] = self.VAR
         self.tree.heading("#0", text="Symbol", anchor=tkinter.W)
-        self.tree.column("#0", width=80)
+        self.tree.column("#0", width=100)
         for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
 
-        button.grid(column=0, row=0)
-        check.grid(column=1, row=0)
+        # Handle closing positions
+        self.tree.bind("<Double-1>", self.close_selected)
+
+        label.grid(column=0, row=0)
+        button.grid(column=1, row=0)
+        check.grid(column=2, row=0)
         self.tree.pack()
         subframe.pack()
         self.label.pack()
@@ -230,6 +231,35 @@ class Positions(tkinter.Frame):
         self.delay_multiplier = 1  # Will be set higher when request fails
 
         self.update_positions()
+
+    def close_selected(self, event):
+        try:
+            # Get information from treeview
+            currItem = self.tree.focus()
+            parent = self.tree.parent(currItem)
+            currData = self.tree.item(currItem)
+            parData = self.tree.item(parent)
+
+            symbol = currData["text"]
+            accName = parData["text"]
+            quantity = float(currData["values"][self.VAR.index("size")])
+            sell = not quantity < 0  # Should be opposite of position polarity
+            quantity = abs(quantity)
+        except Exception as e:
+            tkinter.messagebox.showerror("Error closing position",
+                                         str(e))
+            raise e
+        if not symbol:
+            tkinter.messagebox.showerror("Error closing position",
+                                         "Blank symbol")
+            raise BitmexGUIException("Error closing position: Blank symbol")
+        if not accName:
+            tkinter.messagebox.showerror("Error closing position",
+                                         "No account name")
+            raise BitmexGUIException("Error closing position: No account name")
+
+        # Send order
+        core.order_market([accName], symbol, quantity, sell)
 
     def update_positions(self):
         """
@@ -259,7 +289,7 @@ class Positions(tkinter.Frame):
                 positions = account["positions"]
                 positions.sort(key=lambda x: x["symbol"], reverse=False)  # Sort
 
-                parent = self.tree.insert("", "end", text=name,
+                parent = self.tree.insert("", "end", text=name, open=True,
                                           values=["" for x in self.VAR])
 
                 for position in positions:
@@ -267,10 +297,10 @@ class Positions(tkinter.Frame):
                     for v in self.VAR:
                         values.append(str(position[v]))
 
-                    #self.tree.insert(parent, "end", text=position["symbol"],
-                    #                 values=values)
-                    self.tree.insert("", "end", text=position["symbol"],
+                    self.tree.insert(parent, "end", text=position["symbol"],
                                      values=values)
+                    #self.tree.insert("", "end", text=position["symbol"],
+                    #                 values=values)
             # Resize tree
             new_height = len(self.tree.get_children())
             if new_height < self.MIN_TREE_HEIGHT:
@@ -524,7 +554,7 @@ class Order(tkinter.Frame):
         self.mainFrame = self.Main(self)
         self.buttonFrame = self.Buttons(self)
 
-        self.accFrame.pack()
+        self.accFrame.pack(fill=tkinter.X)
         self.mainFrame.pack()
         self.buttonFrame.pack()
 
