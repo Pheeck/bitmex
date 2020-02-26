@@ -21,13 +21,6 @@ SPINBOX_LIMIT = 1000000000
 # Classes
 #
 
-class Menu(tkinter.Frame):
-    """
-    Frame for opening additional windows.
-    """
-
-    pass
-
 
 class Overview(tkinter.Frame):
     """
@@ -67,10 +60,10 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
         self.fastVar = tkinter.IntVar(self)
 
         self.tree = tkinter.ttk.Treeview(self, height=self.MIN_TREE_HEIGHT)
-        subframe = tkinter.Frame(self)
-        button = tkinter.Button(subframe, text="Update",
+        rightframe = tkinter.Frame(self)
+        button = tkinter.Button(rightframe, text="Update",
                                 command=lambda: self.update_positions())
-        check = tkinter.Checkbutton(subframe, var=self.fastVar,
+        check = tkinter.Checkbutton(rightframe, var=self.fastVar,
                                     text="Update faster")
         self.label = tkinter.Label(self)
 
@@ -81,19 +74,19 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
 
-        button.grid(column=0, row=0)
-        check.grid(column=1, row=0)
-        self.tree.pack()
-        subframe.pack()
-        self.label.pack()
+        button.grid(column=0, row=0, sticky=tkinter.N+tkinter.S+tkinter.W+tkinter.E)
+        check.grid(column=0, row=1)
+        self.label.grid(column=0, row=1)
+        self.tree.grid(column=0, row=0)
+        # rightframe.grid(column=1, row=0, sticky=tkinter.N+tkinter.S+tkinter.W+tkinter.E)
 
         self._job = None
         self.dots = self.MIN_DOTS
         self.delay_multiplier = 1  # Will be set higher when request fails
 
-        self.update_positions()
+        self.update_margin()
 
-    def update_positions(self):
+    def update_margin(self):
         """
         Query backend for all accounts margin stats, place them into treeview.
         Sets this function to repeat after UPDATE_SECONDS seconds.
@@ -134,7 +127,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
             if new_height > self.MAX_TREE_HEIGHT:
                 new_height = self.MAX_TREE_HEIGHT
             self.tree.configure(height=new_height)
-            self.tree.pack()
+            self.tree.grid(column=0, row=0)
 
             # Update dots
             self.dots += 1
@@ -153,7 +146,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
         else:
             delay = int(1000 * (60 * len(names) / self.REQUESTS_PER_MINUTE))
         delay *= self.delay_multiplier
-        self._job = self.after(delay, self.update_positions)
+        self._job = self.after(delay, self.update_margin)
 
 
 class Positions(tkinter.Frame):
@@ -223,7 +216,7 @@ class Positions(tkinter.Frame):
         button.grid(column=1, row=0)
         check.grid(column=2, row=0)
         self.tree.pack()
-        subframe.pack()
+        #subframe.pack()
         self.label.pack()
 
         self._job = None

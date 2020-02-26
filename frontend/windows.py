@@ -1577,6 +1577,10 @@ class Calculator(AbstractChild):
 
     TITLE = "PNL Calculator"
     SIGNIFICANT_FIGURES = 5
+    PRIORITY_SYMBOLS = (
+        "XBTUSD",
+        "ETHUSD"
+    )
 
     def __init__(self, *args, **kvargs):
         AbstractChild.__init__(self, *args, **kvargs)
@@ -1592,6 +1596,13 @@ class Calculator(AbstractChild):
             print(e)
             openInstruments = []
 
+        openInstruments.sort()
+        # Priority symbols at top of list if they exist
+        for symbol in self.PRIORITY_SYMBOLS[::-1]:
+            if symbol in openInstruments:
+                openInstruments.remove(symbol)
+                openInstruments.insert(0, symbol)
+
         # Frontend
         mainFrame = tkinter.Frame(self)
         upperFrame = tkinter.Frame(mainFrame)
@@ -1599,6 +1610,7 @@ class Calculator(AbstractChild):
         buttonFrame = tkinter.Frame(mainFrame)
 
         self.symVar = tkinter.StringVar(self)
+        self.symVar.set(openInstruments[0])
 
         symLabel = tkinter.Label(upperFrame, text="Symbol:")
         symCombo = tkinter.ttk.Combobox(upperFrame, textvariable=self.symVar)

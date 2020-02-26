@@ -6,6 +6,8 @@ import tkinter
 
 import newfrontend.frames as frames
 
+from frontend.windows import Calculator
+
 import backend.accounts as accounts
 from backend.exceptions import BitmexAccountsException
 
@@ -45,18 +47,25 @@ class Landing(tkinter.Tk):
         self.wm_title(self.TITLE)
 
         # Child windows
-        # TODO
-        self.windows = []
+        calcWindow = Calculator(hidden=True)
+
+        self.windows = [
+            calcWindow
+        ]
+
+        # Menu
+        menu = tkinter.Menu()
+        menu.add_command(label="PnL Calculator", command=lambda: calcWindow.toggle_hidden())
+        menu.add_command(label="Settings")
+        self.configure(menu=menu)
 
         # Widgets
         mainFrame = tkinter.Frame(self)
-        self.menuFrame = frames.Menu(mainFrame)
         self.overFrame = frames.Overview(mainFrame)
         self.accFrame = frames.Accounts(mainFrame)
         self.posFrame = frames.Positions(mainFrame)
         self.orderFrame = frames.Order(mainFrame)
 
-        self.menuFrame.pack()
         self.overFrame.pack()
         self.accFrame.pack()
         self.posFrame.pack()

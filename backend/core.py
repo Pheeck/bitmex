@@ -212,7 +212,7 @@ def account_margin_stats(accountNames):
         account = {
             "name": foo["account"]["name"],
             "stats": {
-                "availableMargin": float(foo["response"]["availableMargin"]),
+                "availableMargin": float(foo["response"]["availableMargin"]) * 1e-8,
                 "unrealisedPnl": significant_figures(foo["response"]["unrealisedPnl"] * 1e-8,
                                                      SIGNIFICANT_FIGURES),
             }
