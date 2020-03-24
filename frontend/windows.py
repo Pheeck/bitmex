@@ -21,6 +21,7 @@ from utility import significant_figures
 
 
 DESTROY_DELAY = 200  # Delay before window destroys itself at quit() method call
+RETRY_DELAY = 9000  # Standard delay before trying to request crucial data again
 SPINBOX_LIMIT = 1000000000
 
 
@@ -1585,24 +1586,6 @@ class Calculator(AbstractChild):
     def __init__(self, *args, **kvargs):
         AbstractChild.__init__(self, *args, **kvargs)
 
-        # Backend
-        try:
-            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
-            openInstruments.sort()
-        except IndexError:
-            print("Warning: No accounts were created yet.")
-            openInstruments = []
-        except Exception as e:
-            print(e)
-            openInstruments = []
-
-        openInstruments.sort()
-        # Priority symbols at top of list if they exist
-        for symbol in self.PRIORITY_SYMBOLS[::-1]:
-            if symbol in openInstruments:
-                openInstruments.remove(symbol)
-                openInstruments.insert(0, symbol)
-
         # Frontend
         mainFrame = tkinter.Frame(self)
         upperFrame = tkinter.Frame(mainFrame)
@@ -1610,11 +1593,14 @@ class Calculator(AbstractChild):
         buttonFrame = tkinter.Frame(mainFrame)
 
         self.symVar = tkinter.StringVar(self)
-        self.symVar.set(openInstruments[0])
 
         symLabel = tkinter.Label(upperFrame, text="Symbol:")
-        symCombo = tkinter.ttk.Combobox(upperFrame, textvariable=self.symVar)
-        symCombo["values"] = openInstruments
+        self.symCombo = tkinter.ttk.Combobox(upperFrame, textvariable=self.symVar)
+
+        # Backend
+        self._fetch_instruments()
+
+        # Frontend again
         qtyLabel = tkinter.Label(upperFrame, text="Quantity:")
         self.qtySpin = tkinter.Spinbox(upperFrame, from_=1, to=SPINBOX_LIMIT)
         entLabel = tkinter.Label(upperFrame, text="Entry Price:")
@@ -1641,7 +1627,7 @@ class Calculator(AbstractChild):
                                      command=lambda: self.calculate(short=True))
 
         symLabel.grid(column=0, row=0)
-        symCombo.grid(column=1, row=0)
+        self.symCombo.grid(column=1, row=0)
         qtyLabel.grid(column=0, row=1)
         self.qtySpin.grid(column=1, row=1)
         entLabel.grid(column=0, row=2)
@@ -1669,6 +1655,42 @@ class Calculator(AbstractChild):
         lowerFrame.pack()
         buttonFrame.pack()
         mainFrame.pack()
+
+    def _fetch_instruments(self):
+        """
+        Request list of open instruments from api.
+        Then populate calculator's symbol combobox with it.
+
+        Will schedule itself to repeat if fetch fails.
+        Internal method
+        """
+        try:
+            openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+            openInstruments.sort()
+        except IndexError:
+            print("Warning: No accounts were created yet.")
+            openInstruments = []
+        except Exception as e:
+            print(e)
+            openInstruments = []
+
+        # Schedule repeat if no openInstrumets
+        if not openInstruments:
+            self.after(RETRY_DELAY, self._fetch_instruments)
+            print("Warning: Failed to fetch open instruments. Retrying...")
+            return
+
+        # Priority symbols at top of list if they exist
+        for symbol in self.PRIORITY_SYMBOLS[::-1]:
+            if symbol in openInstruments:
+                openInstruments.remove(symbol)
+                openInstruments.insert(0, symbol)
+
+        # Set first instrument as selected
+        self.symVar.set(openInstruments[0])
+
+        # Populate combobox
+        self.symCombo["values"] = openInstruments
 
     def calculate(self, short=False):
         """

@@ -15,6 +15,7 @@ from backend.exceptions import BitmexGUIException
 #
 
 SPINBOX_LIMIT = 1000000000
+RETRY_DELAY = 9000  # Standard delay before trying to request crucial data again
 
 
 #
@@ -431,26 +432,11 @@ class Order(tkinter.Frame):
         def __init__(self, *args, **kvargs):
             tkinter.Frame.__init__(self, *args, **kvargs)
 
-            # Backend
-            try:
-                openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
-            except Exception as e:
-                print(e)
-                openInstruments = []
-
-            openInstruments.sort()
-            # Priority symbols at top of list if they exist
-            for symbol in self.PRIORITY_SYMBOLS[::-1]:
-                if symbol in openInstruments:
-                    openInstruments.remove(symbol)
-                    openInstruments.insert(0, symbol)
-
             # Frontend
             self.symbolVar = tkinter.StringVar(self)
             self.limitVar = tkinter.IntVar(self)
             self.stopVar = tkinter.IntVar(self)
 
-            self.symbolVar.set(openInstruments[0])
             self.limitVar.set(1)
             self.stopVar.set(1)
 
@@ -483,9 +469,13 @@ class Order(tkinter.Frame):
                                             ),  # end of dirty hack
                                             **self.LABEL_PARAMS)
 
-            symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
-                                               **self.COMBO_PARAMS)
-            symbolCombo["values"] = openInstruments
+            self.symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
+                                                    **self.COMBO_PARAMS)
+
+            # Backend
+            self._fetch_instruments()
+
+            # Frontend again
             self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
                                            **self.SPINBOX_PARAMS)
             self.levSpin = tkinter.Spinbox(self, from_=0, to=1000,
@@ -508,13 +498,49 @@ class Order(tkinter.Frame):
             exitLabel.grid(column=5, row=0)
             stopLabel.grid(column=6, row=0)
 
-            symbolCombo.grid(column=0, row=1)
+            self.symbolCombo.grid(column=0, row=1)
             self.qtySpin.grid(column=1, row=1)
             self.levSpin.grid(column=2, row=1)
             self.pxSpin.grid(column=3, row=1)
             self.entryLabel.grid(column=4, row=1)
             self.exitLabel.grid(column=5, row=1)
             self.stopSpin.grid(column=6, row=1)
+
+        def _fetch_instruments(self):
+            """
+            Request list of open instruments from api.
+            Then populate this frame's symbol combobox with it.
+
+            Will schedule itself to repeat if fetch fails.
+            Internal method
+            """
+            try:
+                openInstruments = core.open_instruments(accounts.get_all()[0]["name"])
+                openInstruments.sort()
+            except IndexError:
+                print("Warning: No accounts were created yet.")
+                openInstruments = []
+            except Exception as e:
+                print(e)
+                openInstruments = []
+
+            # Schedule repeat if no openInstrumets
+            if not openInstruments:
+                self.after(RETRY_DELAY, self._fetch_instruments)
+                print("Warning: Failed to fetch open instruments. Retrying...")
+                return
+
+            # Priority symbols at top of list if they exist
+            for symbol in self.PRIORITY_SYMBOLS[::-1]:
+                if symbol in openInstruments:
+                    openInstruments.remove(symbol)
+                    openInstruments.insert(0, symbol)
+
+            # Set first instrument as selected
+            self.symbolVar.set(openInstruments[0])
+
+            # Populate combobox
+            self.symbolCombo["values"] = openInstruments
 
         def get_symbol(self):
             """
