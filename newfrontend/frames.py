@@ -236,6 +236,8 @@ class Positions(tkinter.Frame):
             # Get information from treeview
             currItem = self.tree.focus()
             parent = self.tree.parent(currItem)
+            if not parent:
+                return  # This is account node, not position node
             currData = self.tree.item(currItem)
             parData = self.tree.item(parent)
 
