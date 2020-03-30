@@ -4,9 +4,10 @@ Landing page window class.
 
 import tkinter
 
-import newfrontend.frames as frames
+import newfrontend.landingframes as frames
 
 from frontend.windows import Calculator
+from newfrontend.settings import Settings
 
 import backend.accounts as accounts
 from backend.exceptions import BitmexAccountsException
@@ -48,15 +49,17 @@ class Landing(tkinter.Tk):
 
         # Child windows
         calcWindow = Calculator(hidden=True)
+        settWindow = Settings(hidden=True)
 
         self.windows = [
-            calcWindow
+            calcWindow,
+            settWindow,
         ]
 
         # Menu
         menu = tkinter.Menu()
         menu.add_command(label="PnL Calculator", command=lambda: calcWindow.toggle_hidden())
-        menu.add_command(label="Settings")
+        menu.add_command(label="Settings", command=lambda: settWindow.toggle_hidden())
         self.configure(menu=menu)
 
         # Widgets
