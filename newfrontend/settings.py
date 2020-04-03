@@ -154,7 +154,7 @@ class Settings(AbstractChild):
 
         mainFrame = tkinter.Frame(self)
         self.accFrame = frames.AccountManagement(mainFrame, self)
-        self.botFrame = frames.Bot(mainFrame)
+        self.botFrame = frames.BotManagement(mainFrame)
 
         self.accFrame.pack()
         self.botFrame.pack()

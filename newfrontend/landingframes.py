@@ -19,7 +19,52 @@ RETRY_DELAY = 9000  # Standard delay before trying to request crucial data again
 
 
 #
-# Classes
+# Utility frame classes
+#
+
+class AccountsSelect(tkinter.Frame):
+    """
+    Frame for choosing to which accounts should new order be sent.
+    """
+
+    def __init__(self, *args, **kvargs):
+        tkinter.Frame.__init__(self, *args, **kvargs)
+
+        leftFrame = tkinter.Frame(self)
+        rightFrame = tkinter.Frame(self)
+
+        label = tkinter.Label(leftFrame, text="Select Accounts:")
+        label.pack()
+
+        self.names = []
+        self.vars = []
+
+        for i, account in enumerate(accounts.get_all()):
+            name = account["name"]
+            var = tkinter.IntVar(self)
+
+            check = tkinter.Checkbutton(rightFrame, text=name, var=var)
+            check.grid(column=i, row=0)
+
+            self.names.append(name)
+            self.vars.append(var)
+
+        leftFrame.grid(column=0, row=0)
+        rightFrame.grid(column=1, row=0)
+
+    def get_names(self):
+        """
+        Returns currently selected account names.
+        """
+        result = []
+        for name, var in zip(self.names, self.vars):
+            if var.get():
+                result.append(str(name))
+        return result
+
+
+#
+# Landing page frame classes
 #
 
 
@@ -35,6 +80,8 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
     """
     Frame displaying wallet ballance and unrealised PnL for each account.
     """
+
+    TITLE = "Accounts overview"
 
     REQUESTS_PER_MINUTE = 25  # Window will try to respect this number
     REQUESTS_FASTER = 55
@@ -56,7 +103,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
     )
 
     def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
 
         self.fastVar = tkinter.IntVar(self)
 
@@ -155,6 +202,8 @@ class Positions(tkinter.Frame):
     Frame for monitoring status of open positions for each account.
     """
 
+    TITLE = "Open positions"
+
     REQUESTS_PER_MINUTE = 25  # Window will try to respect this number
     REQUESTS_FASTER = 55
     MIN_DOTS = 1
@@ -190,7 +239,7 @@ class Positions(tkinter.Frame):
     )
 
     def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
 
         self.fastVar = tkinter.IntVar(self)
 
@@ -367,48 +416,9 @@ class Order(tkinter.Frame):
     Frame for creating new orders.
     """
 
+    TITLE = "New order"
+
     TRIGGER_TYPE = "Last"
-
-
-    class Accounts(tkinter.Frame):
-        """
-        Frame for choosing to which accounts should new order be sent.
-        """
-
-        def __init__(self, *args, **kvargs):
-            tkinter.Frame.__init__(self, *args, **kvargs)
-
-            leftFrame = tkinter.Frame(self)
-            rightFrame = tkinter.Frame(self)
-
-            label = tkinter.Label(leftFrame, text="Select Accounts:")
-            label.pack()
-
-            self.names = []
-            self.vars = []
-
-            for i, account in enumerate(accounts.get_all()):
-                name = account["name"]
-                var = tkinter.IntVar(self)
-
-                check = tkinter.Checkbutton(rightFrame, text=name, var=var)
-                check.grid(column=i, row=0)
-
-                self.names.append(name)
-                self.vars.append(var)
-
-            leftFrame.grid(column=0, row=0)
-            rightFrame.grid(column=1, row=0)
-
-        def get_names(self):
-            """
-            Returns currently selected account names.
-            """
-            result = []
-            for name, var in zip(self.names, self.vars):
-                if var.get():
-                    result.append(str(name))
-            return result
 
 
     class Main(tkinter.Frame):
@@ -473,11 +483,6 @@ class Order(tkinter.Frame):
 
             self.symbolCombo = tkinter.ttk.Combobox(self, textvariable=self.symbolVar,
                                                     **self.COMBO_PARAMS)
-
-            # Backend
-            self._fetch_instruments()
-
-            # Frontend again
             self.qtySpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
                                            **self.SPINBOX_PARAMS)
             self.levSpin = tkinter.Spinbox(self, from_=0, to=1000,
@@ -492,6 +497,10 @@ class Order(tkinter.Frame):
                                             value=self.DEFAULT_PX,
                                             **self.SPINBOX_PARAMS)
 
+            # Backend
+            self._fetch_instruments()
+
+            # Frontend again
             symbolLabel.grid(column=0, row=0)
             qtyLabel.grid(column=1, row=0)
             levLabel.grid(column=2, row=0)
@@ -605,9 +614,9 @@ class Order(tkinter.Frame):
 
 
     def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
 
-        self.accFrame = self.Accounts(self)
+        self.accFrame = AccountsSelect(self)
         self.mainFrame = self.Main(self)
         self.buttonFrame = self.Buttons(self)
 
@@ -679,3 +688,69 @@ class Order(tkinter.Frame):
         Query api to send relative order. Use parameters inputed by user.
         """
         pass
+
+
+class Bot(tkinter.Frame):
+    """
+    Frame for monitoring what bot does.
+    Also used to turn bot on/off.
+    """
+
+    TITLE = "Bot"
+
+    TEXT_OFF = "Start bot"
+    TEXT_ON = "Stop bot"
+    TREE_HEIGHT = 10
+
+    LABEL_PARAMS = {
+        "width": 24
+    }
+
+    def __init__(self, *args, **kvargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+
+        self.runVar = tkinter.IntVar(self)
+        self.runVar.set(0)
+
+        self.runButton = tkinter.Button(self, text=self.TEXT_OFF,
+                                        command=self.toggle_running)
+        self.accountFrame = AccountsSelect(self)
+        priceFrame = tkinter.Frame(self)
+        firstLabel = tkinter.Label(priceFrame, text="Fist contract price",
+                                   **self.LABEL_PARAMS)
+        self.firstLabel = tkinter.Label(priceFrame, text="0",
+                                        **self.LABEL_PARAMS)
+        secondLabel = tkinter.Label(priceFrame, text="Second contract price",
+                                    **self.LABEL_PARAMS)
+        self.secondLabel = tkinter.Label(priceFrame, text="0",
+                                         **self.LABEL_PARAMS)
+        diffLabel = tkinter.Label(priceFrame, text="Difference",
+                                  **self.LABEL_PARAMS)
+        self.diffLabel = tkinter.Label(priceFrame, text="0",
+                                       **self.LABEL_PARAMS)
+        self.logTree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
+
+        firstLabel.grid(column=0, row=0)
+        secondLabel.grid(column=1, row=0)
+        diffLabel.grid(column=2, row=0)
+
+        self.firstLabel.grid(column=0, row=1)
+        self.secondLabel.grid(column=1, row=1)
+        self.diffLabel.grid(column=2, row=1)
+
+        self.runButton.pack()
+        self.accountFrame.pack(fill=tkinter.X)
+        priceFrame.pack()
+        self.logTree.pack()
+
+    def toggle_running(self):
+        """
+        Switches between on and off states of bot.
+        """
+        # Backend
+        # TODO
+        # Frontend - set var
+        self.runVar.set(not self.runVar.get())
+        # Frontend - set button text
+        self.runButton.configure(text=self.TEXT_ON if self.runVar.get() else
+                                      self.TEXT_OFF)

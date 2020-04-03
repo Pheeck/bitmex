@@ -68,11 +68,13 @@ class Landing(tkinter.Tk):
         self.accFrame = frames.Accounts(mainFrame)
         self.posFrame = frames.Positions(mainFrame)
         self.orderFrame = frames.Order(mainFrame)
+        self.botFrame = frames.Bot(mainFrame)
 
-        self.overFrame.pack()
+        self.overFrame.pack(fill=tkinter.X)
         self.accFrame.pack()
-        self.posFrame.pack()
-        self.orderFrame.pack()
+        self.posFrame.pack(fill=tkinter.X)
+        self.orderFrame.pack(fill=tkinter.X)
+        self.botFrame.pack(fill=tkinter.X)
         mainFrame.pack()
 
         # Alive flag
