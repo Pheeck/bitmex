@@ -11,6 +11,8 @@ import backend.accounts as accounts
 
 from backend.exceptions import BitmexGUIException
 
+import bot.settings
+
 
 #
 # Constants
@@ -50,16 +52,16 @@ class AccountManagement(tkinter.Frame):
         self.tree.heading("server", text="Server", anchor=tkinter.W)
         self.tree.heading("key", text="Key", anchor=tkinter.W)
 
-        self.update_accounts()
-
         newButton.grid(column=0, row=0)
         delButton.grid(column=1, row=0)
         self.tree.pack()
         subframe.pack()
 
-    def update_accounts(self):
+    def update_values(self):
         """
         Query backend for loaded accounts and place them into treeview.
+
+        Usually called by settings window when opened.
         """
         self.tree.delete(*self.tree.get_children())
         for account in accounts.get_all():
@@ -84,7 +86,7 @@ class AccountManagement(tkinter.Frame):
 
         name = self.tree.item(self.tree.focus())["text"]
         accounts.delete(name)
-        self.update_accounts()
+        self.update_values()
 
 
 class BotManagement(tkinter.Frame):
@@ -116,10 +118,16 @@ class BotManagement(tkinter.Frame):
 
         self.firstCombo = tkinter.ttk.Combobox(self, textvariable=self.firstVar)
         self.secondCombo = tkinter.ttk.Combobox(self, textvariable=self.secondVar)
-        self.tradeSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
-                                         value=self.DEFAULT_TRADE_PX)
-        self.closeSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
-                                         value=self.DEFAULT_CLOSE_PX)
+        self.tradeSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT)
+        self.closeSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT)
+
+        self.tradeSpin.delete(0)
+        self.tradeSpin.insert(0, self.DEFAULT_TRADE_PX)
+        self.closeSpin.delete(0)
+        self.closeSpin.insert(0, self.DEFAULT_CLOSE_PX)
+
+        saveButton = tkinter.Button(self, text="Save bot settings",
+                                    command=self.save_settings)
 
         # Backend
         self._fetch_instruments()
@@ -133,6 +141,32 @@ class BotManagement(tkinter.Frame):
         self.tradeSpin.grid(column=1, row=2)
         closeLabel.grid(column=0, row=3)
         self.closeSpin.grid(column=1, row=3)
+        saveButton.grid(column=1, row=4)
+
+    def update_values(self):
+        """
+        Query bot backend for current settings and update this frame in
+        accordance.
+
+        Usually called by settings window when opened.
+        """
+        self.firstVar.set(bot.settings.get_first_contract())
+        self.secondVar.set(bot.settings.get_second_contract())
+        self.tradeSpin.delete(0, len(self.tradeSpin.get()))
+        self.tradeSpin.insert(0, bot.settings.get_trade_difference())
+        self.closeSpin.delete(0, len(self.tradeSpin.get()))
+        self.closeSpin.insert(0, bot.settings.get_close_difference())
+
+    def save_settings(self):
+        """
+        Updates bot settings values in bot backend in accordance to current
+        state of this frame's inputs.
+        """
+        bot.settings.set_first_contract(self.firstVar.get())
+        bot.settings.set_second_contract(self.secondVar.get())
+        bot.settings.set_trade_difference(int(self.tradeSpin.get()))
+        bot.settings.set_close_difference(int(self.closeSpin.get()))
+        self.update_values()
 
     def _fetch_instruments(self):
         """

@@ -3,6 +3,9 @@ Landing page window class.
 """
 
 import tkinter
+import sys
+
+import tkinter.messagebox
 
 import newfrontend.landingframes as frames
 
@@ -10,7 +13,10 @@ from frontend.windows import Calculator
 from newfrontend.settings import Settings
 
 import backend.accounts as accounts
-from backend.exceptions import BitmexAccountsException
+from backend.exceptions import BitmexAccountsException, BitmexBotException
+
+import bot.log
+import bot.settings
 
 
 #
@@ -42,6 +48,29 @@ class Landing(tkinter.Tk):
             print("No accounts savefile found, creating a blank one now...")
             accounts.save()
             accounts.load()
+
+        # Bot
+        try:
+            bot.log.read_entries(1)
+        except BitmexBotException:
+            print("No bot log savefile found")
+            do_reset = tkinter.messagebox.askyesno("Reset bot log file", "No " +
+                                                   "valid bot log file found. "+
+                                                   "Do you want to create a " +
+                                                   "new one?\n" + "Warning: " +
+                                                   "This will reset the old " +
+                                                   "log if it exists.")
+            if do_reset:
+                bot.log.reset()
+            else:
+                sys.exit()
+
+        try:
+            bot.settings.load()
+        except BitmexBotException:
+            print("No bot settings savefile found, creating a blank one now...")
+            bot.settings.save()
+            bot.settings.load()
 
         # Frontend
         self.protocol("WM_DELETE_WINDOW", self.quit)
@@ -93,5 +122,6 @@ class Landing(tkinter.Tk):
         Cleans up and kills the program.
         """
         accounts.save()
+        bot.settings.save()
         self.isAlive = False
         self.after(DESTROY_DELAY, self.destroy)

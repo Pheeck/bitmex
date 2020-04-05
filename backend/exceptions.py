@@ -39,3 +39,7 @@ class BitmexCoreMultiException(BitmexCoreException):
 
 class BitmexGUIException(BitmexException):
     pass
+
+
+class BitmexBotException(BitmexException):
+    pass

@@ -180,3 +180,12 @@ class Settings(AbstractChild):
         """
         if self.login is None:
             self.login = Login()
+
+    def toggle_hidden(self):
+        """
+        Overriding toggle hidden function to also update values of this
+        window's frames.
+        """
+        AbstractChild.toggle_hidden(self)
+        self.accFrame.update_values()
+        self.botFrame.update_values()

@@ -112,3 +112,5 @@ def load(savefile: str = SAVEFILE):
     _accounts.clear()
     for account in dict:
         _accounts.append(account)
+
+    f.close()

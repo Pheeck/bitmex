@@ -9,6 +9,10 @@ import backend.accounts as accounts
 
 from backend.exceptions import BitmexGUIException
 
+import bot.log
+
+from bot.thread import run_bot
+
 
 #
 # Constants
@@ -489,13 +493,16 @@ class Order(tkinter.Frame):
                                            state=tkinter.DISABLED,
                                            **self.SPINBOX_PARAMS)
             self.pxSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
-                                          value=self.DEFAULT_PX,
                                           **self.SPINBOX_PARAMS)
             self.entryLabel = tkinter.Label(self, text="0", state=tkinter.DISABLED)
             self.exitLabel = tkinter.Label(self, text="0", state=tkinter.DISABLED)
             self.stopSpin = tkinter.Spinbox(self, from_=1, to=SPINBOX_LIMIT,
-                                            value=self.DEFAULT_PX,
                                             **self.SPINBOX_PARAMS)
+
+            self.pxSpin.delete(0)
+            self.pxSpin.insert(0, self.DEFAULT_PX)
+            self.stopSpin.delete(0)
+            self.stopSpin.insert(0, self.DEFAULT_PX)
 
             # Backend
             self._fetch_instruments()
@@ -700,11 +707,29 @@ class Bot(tkinter.Frame):
 
     TEXT_OFF = "Start bot"
     TEXT_ON = "Stop bot"
-    TREE_HEIGHT = 10
 
-    LABEL_PARAMS = {
-        "width": 24
-    }
+    TREE_HEIGHT = 10
+    VAR = (
+        "contract1",
+        "price1",
+        "contract2",
+        "price2",
+        "difference",
+    )
+    TEXT = (
+        "First contract",
+        "Price",
+        "Second contract",
+        "Price",
+        "Delta",
+    )
+    WIDTH = (
+        130,
+        60,
+        130,
+        60,
+        60,
+    )
 
     def __init__(self, *args, **kvargs):
         tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
@@ -715,42 +740,47 @@ class Bot(tkinter.Frame):
         self.runButton = tkinter.Button(self, text=self.TEXT_OFF,
                                         command=self.toggle_running)
         self.accountFrame = AccountsSelect(self)
-        priceFrame = tkinter.Frame(self)
-        firstLabel = tkinter.Label(priceFrame, text="Fist contract price",
-                                   **self.LABEL_PARAMS)
-        self.firstLabel = tkinter.Label(priceFrame, text="0",
-                                        **self.LABEL_PARAMS)
-        secondLabel = tkinter.Label(priceFrame, text="Second contract price",
-                                    **self.LABEL_PARAMS)
-        self.secondLabel = tkinter.Label(priceFrame, text="0",
-                                         **self.LABEL_PARAMS)
-        diffLabel = tkinter.Label(priceFrame, text="Difference",
-                                  **self.LABEL_PARAMS)
-        self.diffLabel = tkinter.Label(priceFrame, text="0",
-                                       **self.LABEL_PARAMS)
-        self.logTree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
+        self.tree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
 
-        firstLabel.grid(column=0, row=0)
-        secondLabel.grid(column=1, row=0)
-        diffLabel.grid(column=2, row=0)
-
-        self.firstLabel.grid(column=0, row=1)
-        self.secondLabel.grid(column=1, row=1)
-        self.diffLabel.grid(column=2, row=1)
+        self.tree["columns"] = self.VAR
+        self.tree.heading("#0", text="Log", anchor=tkinter.W)
+        self.tree.column("#0", width=130)
+        for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
+            self.tree.heading(v, text=t, anchor=tkinter.W)
+            self.tree.column(v, width=w)
 
         self.runButton.pack()
         self.accountFrame.pack(fill=tkinter.X)
-        priceFrame.pack()
-        self.logTree.pack()
+        self.tree.pack()
+
+        self.update_values()
 
     def toggle_running(self):
         """
         Switches between on and off states of bot.
         """
         # Backend
-        # TODO
+        run_bot(on_interation=self.update_values)
         # Frontend - set var
         self.runVar.set(not self.runVar.get())
         # Frontend - set button text
         self.runButton.configure(text=self.TEXT_ON if self.runVar.get() else
                                       self.TEXT_OFF)
+
+    def update_values(self):
+        """
+        Query bot backend for log entries and place them into treeview.
+        """
+        entries = bot.log.read_entries(self.TREE_HEIGHT)
+
+        # Clear tree
+        for child in self.tree.get_children():
+            self.tree.delete(child)
+
+        # Fill tree
+        for entry in entries:
+            time = entry.pop("time")
+            values = []
+            for v in self.VAR:
+                values.append(str(entry[v]))
+            self.tree.insert("", "end", text=time, values=values)
