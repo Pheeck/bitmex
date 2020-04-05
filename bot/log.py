@@ -10,7 +10,7 @@ from backend.exceptions import BitmexBotException
 # Constants
 
 SAVEFILE = "./botlog"
-TIME_FORMAT = "%y/%m/%d %H/%M/%S"
+TIME_FORMAT = "%y/%m/%d %H:%M:%S"
 
 #
 # Functions
@@ -102,15 +102,15 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
         f.close()
 
     for i, entry in enumerate(entries):
-        entries[i] = entry[:-1].split("\t")  # Get rid of newline and split
+        entry = entry[:-1].split("\t")  # Get rid of newline and split
         try:
             entry = {
                 "time": datetime.strptime(entry[0], TIME_FORMAT),
                 "contract1": entry[1],
-                "contract2": entry[2],
-                "price1": int(entry[3]),
-                "price2": int(entry[4]),
-                "difference": int(entry[5]),
+                "price1": float(entry[2]),
+                "contract2": entry[3],
+                "price2": float(entry[4]),
+                "difference": float(entry[5]),
             }
         except Exception as e:
             raise BitmexBotException("Internal Error: " + str(e) + "Is '" +

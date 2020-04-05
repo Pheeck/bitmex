@@ -10,8 +10,9 @@ import backend.accounts as accounts
 from backend.exceptions import BitmexGUIException
 
 import bot.log
+import bot.bot
 
-from bot.thread import run_bot
+from bot.thread import run_bot, stop_bot
 
 
 #
@@ -31,8 +32,8 @@ class AccountsSelect(tkinter.Frame):
     Frame for choosing to which accounts should new order be sent.
     """
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Frame.__init__(self, *args, **kwargs)
 
         leftFrame = tkinter.Frame(self)
         rightFrame = tkinter.Frame(self)
@@ -106,8 +107,8 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
         200
     )
 
-    def __init__(self, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
         self.fastVar = tkinter.IntVar(self)
 
@@ -242,8 +243,8 @@ class Positions(tkinter.Frame):
         110
     )
 
-    def __init__(self, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
         self.fastVar = tkinter.IntVar(self)
 
@@ -445,8 +446,8 @@ class Order(tkinter.Frame):
         )
         DEFAULT_PX = 10000
 
-        def __init__(self, *args, **kvargs):
-            tkinter.Frame.__init__(self, *args, **kvargs)
+        def __init__(self, *args, **kwargs):
+            tkinter.Frame.__init__(self, *args, **kwargs)
 
             # Frontend
             self.symbolVar = tkinter.StringVar(self)
@@ -606,8 +607,8 @@ class Order(tkinter.Frame):
             "width": 15
         }
 
-        def __init__(self, parent, *args, **kvargs):
-            tkinter.Frame.__init__(self, parent, *args, **kvargs)
+        def __init__(self, parent, *args, **kwargs):
+            tkinter.Frame.__init__(self, parent, *args, **kwargs)
 
             buyButton = tkinter.Button(self, text="Buy/Long",
                                        command=lambda: parent._send(sell=False),
@@ -620,8 +621,8 @@ class Order(tkinter.Frame):
             sellButton.grid(column=1, row=0)
 
 
-    def __init__(self, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
         self.accFrame = AccountsSelect(self)
         self.mainFrame = self.Main(self)
@@ -705,8 +706,12 @@ class Bot(tkinter.Frame):
 
     TITLE = "Bot"
 
+    UPDATE_SECONDS = 1
+
     TEXT_OFF = "Start bot"
     TEXT_ON = "Stop bot"
+
+    SHOW_LOG_ENTRIES = 10
 
     TREE_HEIGHT = 10
     VAR = (
@@ -731,8 +736,8 @@ class Bot(tkinter.Frame):
         60,
     )
 
-    def __init__(self, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
         self.runVar = tkinter.IntVar(self)
         self.runVar.set(0)
@@ -741,10 +746,11 @@ class Bot(tkinter.Frame):
                                         command=self.toggle_running)
         self.accountFrame = AccountsSelect(self)
         self.tree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
+        self.label = tkinter.Label(self, text="")
 
         self.tree["columns"] = self.VAR
         self.tree.heading("#0", text="Log", anchor=tkinter.W)
-        self.tree.column("#0", width=130)
+        self.tree.column("#0", width=170)
         for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
@@ -752,35 +758,71 @@ class Bot(tkinter.Frame):
         self.runButton.pack()
         self.accountFrame.pack(fill=tkinter.X)
         self.tree.pack()
+        self.label.pack()
+
+        self._job = None
+
+        self._bot_thread = None
 
         self.update_values()
+
+    def update_values(self):
+        """
+        Query bot backend for log entries and place them into treeview.
+        Sets this function to repeat after UPDATE_SECONDS seconds.
+        Clears positions from tree beforehand.
+        Doesnt run if no new entries were written since last call to this.
+        """
+        if bot.bot.has_new_entry():
+            entries = bot.log.read_entries(self.SHOW_LOG_ENTRIES)
+
+            # Clear tree
+            for child in self.tree.get_children():
+                self.tree.delete(child)
+
+            # Fill tree
+            for entry in entries:
+                time = entry.pop("time")
+                values = []
+                for v in self.VAR:
+                    values.append(str(entry[v]))
+                self.tree.insert("", "end", text=time, values=values)
+
+        # Update seconds
+        if self.runVar.get():  # If bot running
+            seconds = bot.bot.get_seconds()
+            self.label.configure(text = str(seconds) + " seconds remaining")
+        else:
+            self.label.configure(text="")
+
+        # Set repeat
+        if self.runVar.get():  # Repeat only if bot is running
+            if not self._job is None:
+                self.after_cancel(self._job)
+            delay = 1000 * self.UPDATE_SECONDS
+            self._job = self.after(delay, self.update_values)
 
     def toggle_running(self):
         """
         Switches between on and off states of bot.
         """
-        # Backend
-        run_bot(on_interation=self.update_values)
-        # Frontend - set var
-        self.runVar.set(not self.runVar.get())
-        # Frontend - set button text
-        self.runButton.configure(text=self.TEXT_ON if self.runVar.get() else
-                                      self.TEXT_OFF)
+        if self.runVar.get():  # If bot running
+            # Bot backend
+            stop_bot(self._bot_thread)
+            # Frontend
+            self.runVar.set(0)
+            self.runButton.configure(text=self.TEXT_OFF)
+        else:
+            # Bot backend
+            self._bot_thread = run_bot()
+            # Frontend
+            self.runVar.set(1)
+            self.runButton.configure(text=self.TEXT_ON)
 
-    def update_values(self):
+            self.after(500, self.update_values)
+
+    def is_running(self):
         """
-        Query bot backend for log entries and place them into treeview.
+        Returns if bot is currently runnning.
         """
-        entries = bot.log.read_entries(self.TREE_HEIGHT)
-
-        # Clear tree
-        for child in self.tree.get_children():
-            self.tree.delete(child)
-
-        # Fill tree
-        for entry in entries:
-            time = entry.pop("time")
-            values = []
-            for v in self.VAR:
-                values.append(str(entry[v]))
-            self.tree.insert("", "end", text=time, values=values)
+        return bool(self.runVar.get())

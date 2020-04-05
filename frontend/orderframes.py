@@ -36,8 +36,8 @@ class Main(tkinter.Frame):
         "width": 15
     }
 
-    def __init__(self, parent, window, *args, **kvargs):
-        tkinter.Frame.__init__(self, parent, *args, **kvargs)
+    def __init__(self, parent, window, *args, **kwargs):
+        tkinter.Frame.__init__(self, parent, *args, **kwargs)
 
         # Backend
         try:
@@ -89,8 +89,8 @@ class Accounts(tkinter.Frame):
     Frame for choosing to which accounts should the order be sent.
     """
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Frame.__init__(self, *args, **kwargs)
 
         label = tkinter.Label(self, text="Select Accounts:")
         label.pack(anchor=tkinter.W)
@@ -136,8 +136,8 @@ class Limit(tkinter.Frame):
         "width": 20
     }
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Frame.__init__(self, *args, **kwargs)
 
         self.poVar = tkinter.IntVar(self)
         self.hiddVar = tkinter.IntVar(self)
@@ -218,8 +218,8 @@ class Trigger(tkinter.Frame):
         "width": 9
     }
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Frame.__init__(self, *args, **kwargs)
 
         self.typeVar = tkinter.StringVar(self)
         self.typeVar.set(self.TRIGGER_TYPES[1])
@@ -282,8 +282,8 @@ class StopLoss(tkinter.Frame):
         "width": 9
     }
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Frame.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Frame.__init__(self, *args, **kwargs)
 
         self.stopVar = tkinter.IntVar(self)
         self.typeVar = tkinter.StringVar(self)
@@ -326,8 +326,8 @@ class LossCalc(tkinter.Frame):
     Frame for calculating potential loss if stop loss has to go off.
     """
 
-    def __init__(self, parent, window, *args, **kvargs):
-        tkinter.Frame.__init__(self, parent, *args, **kvargs)
+    def __init__(self, parent, window, *args, **kwargs):
+        tkinter.Frame.__init__(self, parent, *args, **kwargs)
 
         textLabel = tkinter.Label(self, text="Potential loss:")
         self.numLabel = tkinter.Label(self, text="0")

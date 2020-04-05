@@ -41,8 +41,8 @@ class Main(tkinter.Tk):
         "width": 18
     }
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         # Backend
         try:
@@ -134,13 +134,13 @@ class Main(tkinter.Tk):
         # Alive flag
         self.isAlive = True
 
-    def update(self, *args, **kvargs):
+    def update(self, *args, **kwargs):
         """
         Overriding update method to also update child windows.
         """
         for window in self.windows:
             window.update()
-        tkinter.Tk.update(self, *args, **kvargs)
+        tkinter.Tk.update(self, *args, **kwargs)
 
     def quit(self):
         """
@@ -163,8 +163,8 @@ class AbstractOrder(tkinter.Tk):
 
     TITLE = ""
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         self.protocol("WM_DELETE_WINDOW", self.quit)
         self.wm_title(self.TITLE)
@@ -219,8 +219,8 @@ class Market(AbstractOrder):
 
     TITLE = "New Market Order"
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
         self.stopLossFrame.pack()
@@ -248,8 +248,8 @@ class TriggerMarket(AbstractOrder):
 
     TITLE = "New Trigger Market Order"
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.triggFrame = orderframes.Trigger(self.leftFrame)
         self.triggFrame.pack()
@@ -278,8 +278,8 @@ class Limit(AbstractOrder):
     TITLE = "New Limit Order"
     SIGNIFICANT_FIGURES = 5
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
         self.stopLossFrame = orderframes.StopLoss(self.leftFrame)
@@ -362,8 +362,8 @@ class TriggerLimit(AbstractOrder):
 
     TITLE = "New Trigger Limit Order"
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
         self.limitFrame.pack()
@@ -410,8 +410,8 @@ class RelativeLimit(AbstractOrder):
 
     TITLE = "New Relative Limit Order"
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.mainFrame.qtyLabel.configure(text="Percent: ")
         self.mainFrame.qtySpin.configure(to=100)
@@ -458,8 +458,8 @@ class TriggerRelativeLimit(AbstractOrder):
 
     TITLE = "New Trigger Relative Limit Order"
 
-    def __init__(self, *args, **kvargs):
-        AbstractOrder.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractOrder.__init__(self, *args, **kwargs)
 
         self.limitFrame = orderframes.Limit(self.leftFrame)
         self.limitFrame.pack()
@@ -511,8 +511,8 @@ class Login(tkinter.Tk):
 
     TITLE = "Login"
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         self.protocol("WM_DELETE_WINDOW", self.quit)
         self.wm_title(self.TITLE)
@@ -580,8 +580,8 @@ class AbstractChild(tkinter.Tk):
     Super of all child windows. Can be hidden and remembers its geometry.
     """
 
-    def __init__(self, *args, hidden=True, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, hidden=True, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         self.wm_title(self.TITLE)
         self.protocol("WM_DELETE_WINDOW", self.toggle_hidden)
@@ -623,8 +623,8 @@ class AccountManagement(AbstractChild):
 
     TITLE = "Account Management"
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         frame = tkinter.Frame(self)
         self.tree = tkinter.ttk.Treeview(frame)
@@ -719,8 +719,8 @@ class SelectOrder(AbstractChild):
         "Relative Limit": TriggerRelativeLimit
     }
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         self.orderVar = tkinter.StringVar(self)
         self.triggVar = tkinter.IntVar(self)
@@ -818,8 +818,8 @@ class Positions(AbstractChild):
         90
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         self.fastVar = tkinter.IntVar(self)
 
@@ -952,8 +952,8 @@ class Instruments(AbstractChild):
         "Realised PNL"
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         frame = tkinter.Frame(self)
         self.tree = tkinter.ttk.Treeview(frame, height=self.MIN_TREE_HEIGHT)
@@ -1124,8 +1124,8 @@ class ActiveOrders(AbstractChild):
         190
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         frame = tkinter.Frame(self)
         self.tree = tkinter.ttk.Treeview(frame, height=self.MIN_TREE_HEIGHT)
@@ -1306,8 +1306,8 @@ class StopOrders(AbstractChild):
         200,
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         frame = tkinter.Frame(self)
         self.tree = tkinter.ttk.Treeview(frame, height=self.MIN_TREE_HEIGHT)
@@ -1509,8 +1509,8 @@ class OrderHistory(AbstractChild):
         200,
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         frame = tkinter.Frame(self)
         self.tree = tkinter.ttk.Treeview(frame, height=self.MIN_TREE_HEIGHT)
@@ -1583,8 +1583,8 @@ class Calculator(AbstractChild):
         "ETHUSD"
     )
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         # Frontend
         mainFrame = tkinter.Frame(self)

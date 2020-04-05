@@ -225,6 +225,31 @@ def account_margin_stats(accountNames):
 # Instruments
 #
 
+def instrument_price(accountName, symbol):
+    """
+    Get instruments last traded price, bid price, mid price and ask price.
+
+    accountName:    name of account (for authorization)
+    symbol:         instruments symbol
+
+    Returns {
+        "lastPrice": float,
+        "bidPrice": float,
+        "midPrice": float,
+        "askPrice": float,
+    }
+    """
+    params = {
+        "symbol": symbol
+    }
+    instrument = _for_one_account(accountName, api.instrument_get, **params)["response"][0]
+    return {
+        "lastPrice": instrument["lastPrice"],
+        "bidPrice": instrument["bidPrice"],
+        "midPrice": instrument["midPrice"],
+        "askPrice": instrument["askPrice"],
+    }
+
 def instrument_tick(accountName, symbol):
     """
     Get instruments tick size.

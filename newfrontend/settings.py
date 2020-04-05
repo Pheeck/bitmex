@@ -34,8 +34,8 @@ class AbstractChild(tkinter.Tk):
     directly depend on code from (old) frontend.
     """
 
-    def __init__(self, *args, hidden=True, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, hidden=True, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         self.wm_title(self.TITLE)
         self.protocol("WM_DELETE_WINDOW", self.toggle_hidden)
@@ -77,8 +77,8 @@ class Login(tkinter.Tk):
 
     TITLE = "Login"
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         self.protocol("WM_DELETE_WINDOW", self.quit)
         self.wm_title(self.TITLE)
@@ -149,8 +149,8 @@ class Settings(AbstractChild):
 
     TITLE = "BitMEX Settings"
 
-    def __init__(self, *args, **kvargs):
-        AbstractChild.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        AbstractChild.__init__(self, *args, **kwargs)
 
         mainFrame = tkinter.Frame(self)
         self.accFrame = frames.AccountManagement(mainFrame, self)

@@ -33,8 +33,8 @@ class AccountManagement(tkinter.Frame):
 
     TITLE = "Accounts management"
 
-    def __init__(self, parent, window, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, parent, *args, text=self.TITLE, **kvargs)
+    def __init__(self, parent, window, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, parent, *args, text=self.TITLE, **kwargs)
 
         self.window = window
 
@@ -103,8 +103,8 @@ class BotManagement(tkinter.Frame):
     DEFAULT_TRADE_PX = 1000
     DEFAULT_CLOSE_PX = 100
 
-    def __init__(self, *args, **kvargs):
-        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
         # Frontend
         self.firstVar = tkinter.StringVar(self)

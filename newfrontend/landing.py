@@ -38,8 +38,8 @@ class Landing(tkinter.Tk):
 
     TITLE = "BitMEX Assistant"
 
-    def __init__(self, *args, **kvargs):
-        tkinter.Tk.__init__(self, *args, **kvargs)
+    def __init__(self, *args, **kwargs):
+        tkinter.Tk.__init__(self, *args, **kwargs)
 
         # Backend
         try:
@@ -109,13 +109,13 @@ class Landing(tkinter.Tk):
         # Alive flag
         self.isAlive = True
 
-    def update(self, *args, **kvargs):
+    def update(self, *args, **kwargs):
         """
         Overriding update method to also update child windows.
         """
         for window in self.windows:
             window.update()
-        tkinter.Tk.update(self, *args, **kvargs)
+        tkinter.Tk.update(self, *args, **kwargs)
 
     def quit(self):
         """
@@ -123,5 +123,11 @@ class Landing(tkinter.Tk):
         """
         accounts.save()
         bot.settings.save()
+
+        # Stop bot
+        if self.botFrame.is_running():
+            print("Bot still running. Halting it now...")
+            self.botFrame.toggle_running()
+
         self.isAlive = False
         self.after(DESTROY_DELAY, self.destroy)
