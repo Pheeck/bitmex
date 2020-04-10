@@ -86,6 +86,7 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
         difference: difference between the prices,
     } dicts.
     """
+    f = None
     try:
         f = open(savefile, "r")
         # Note: Last line will be blank -> .pop(), n+1
@@ -96,10 +97,11 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
             entries = read_last_n_lines(n + 1, f)
             entries.pop()
     except Exception as e:
-        raise BitmexBotException("Internal Error: " + str(e) + "Does '" +
+        raise BitmexBotException("Internal Error: " + str(e) + " Does '" +
                                  savefile + "' really exist?")
     finally:
-        f.close()
+        if not f is None:
+            f.close()
 
     for i, entry in enumerate(entries):
         entry = entry[:-1].split("\t")  # Get rid of newline and split
