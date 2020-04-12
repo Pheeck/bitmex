@@ -83,7 +83,6 @@ def main(on_iteration=lambda: None):
 
     while run:
         bot_sleeping = False
-        settings.load()
         do_iteration()
         on_iteration()
         bot_sleeping = True
