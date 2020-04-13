@@ -775,6 +775,7 @@ class Bot(tkinter.Frame):
         """
         if bot.bot.has_new_entry():
             entries = bot.log.read_entries(self.SHOW_LOG_ENTRIES)
+            entries = entries[::-1]  # Reverse order of entries to be displayed
 
             # Clear tree
             for child in self.tree.get_children():

@@ -170,7 +170,7 @@ class Settings(AbstractChild):
             if self.login.isAlive:
                 self.login.update()
             else:  # Login window was just closed
-                self.accFrame.update_accounts()
+                self.accFrame.update_values()
                 self.login = None
         AbstractChild.update(self)
 
