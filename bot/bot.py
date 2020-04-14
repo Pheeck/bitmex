@@ -8,6 +8,8 @@ from datetime import datetime
 import backend.core as core
 import backend.accounts as accounts
 
+from backend.exceptions import BitmexBotException
+
 import bot.log as log
 import bot.settings as settings
 
@@ -15,7 +17,7 @@ import bot.settings as settings
 # Bot flags
 
 kill_bot = False
-new_entry = True
+new_entry = 1
 seconds = 3600
 
 
@@ -39,7 +41,10 @@ def compare():
         difference: difference between the prices,
     }.
     """
-    account_name = accounts.get_all()[0]["name"]
+    account_name = settings.get_account()
+
+    if not account_name:
+        raise BitmexBotException("No account selected")
 
     first_contract = settings.get_first_contract()
     second_contract = settings.get_second_contract()
@@ -69,7 +74,7 @@ def do_iteration():
 
     results = compare()
     log.new_entry(results)
-    new_entry = True
+    new_entry = 2
 
 def main(on_iteration=lambda: None):
     """
@@ -111,9 +116,9 @@ def has_new_entry():
     Returns if new log entry was logged since last call to this function.
     """
     global new_entry
-    foo = new_entry
-    new_entry = False
-    return foo
+    if new_entry:
+        new_entry -= 1
+        return True
 
 def get_seconds():
     """

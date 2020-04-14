@@ -114,7 +114,7 @@ class BotManagement(tkinter.Frame):
         secondLabel = tkinter.Label(self, text="Second contract symbol:")
         tradeLabel = tkinter.Label(self, text="Trade if difference this high:")
         closeLabel = tkinter.Label(self, text="Close if difference this low:")
-
+        self.savedLabel = tkinter.Label(self, text="")
 
         self.firstCombo = tkinter.ttk.Combobox(self, textvariable=self.firstVar)
         self.secondCombo = tkinter.ttk.Combobox(self, textvariable=self.secondVar)
@@ -141,6 +141,7 @@ class BotManagement(tkinter.Frame):
         self.tradeSpin.grid(column=1, row=2)
         closeLabel.grid(column=0, row=3)
         self.closeSpin.grid(column=1, row=3)
+        self.savedLabel.grid(column=0, row=4)
         saveButton.grid(column=1, row=4)
 
     def update_values(self):
@@ -156,6 +157,8 @@ class BotManagement(tkinter.Frame):
         self.tradeSpin.insert(0, bot.settings.get_trade_difference())
         self.closeSpin.delete(0, len(self.tradeSpin.get()))
         self.closeSpin.insert(0, bot.settings.get_close_difference())
+        # Set saved notification off
+        self.savedLabel.configure(text="")
 
     def save_settings(self):
         """
@@ -167,6 +170,9 @@ class BotManagement(tkinter.Frame):
         bot.settings.set_trade_difference(int(self.tradeSpin.get()))
         bot.settings.set_close_difference(int(self.closeSpin.get()))
         self.update_values()
+        # Set saved notification on
+        self.savedLabel.configure(text="")
+        self.after(200, lambda: self.savedLabel.configure(text="Saved."))
 
     def _fetch_instruments(self):
         """

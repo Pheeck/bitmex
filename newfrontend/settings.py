@@ -149,7 +149,7 @@ class Settings(AbstractChild):
 
     TITLE = "BitMEX Settings"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, on_toggle_hidden=None, **kwargs):
         AbstractChild.__init__(self, *args, **kwargs)
 
         mainFrame = tkinter.Frame(self)
@@ -160,7 +160,18 @@ class Settings(AbstractChild):
         self.botFrame.pack()
         mainFrame.pack()
 
+        # On toggle hidden
+        if on_toggle_hidden is not None:
+            self.on_toggle_hidden = on_toggle_hidden
+
         self.login = None
+
+    def set_on_toggle_hidden(self, on_toggle_hidden):
+        """
+        Set function to be executed every time this window is toggled
+        hidden/shown.
+        """
+        self.on_toggle_hidden = on_toggle_hidden
 
     def update(self):
         """
@@ -189,3 +200,5 @@ class Settings(AbstractChild):
         AbstractChild.toggle_hidden(self)
         self.accFrame.update_values()
         self.botFrame.update_values()
+        # On toggle hidden
+        self.on_toggle_hidden()

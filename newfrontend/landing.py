@@ -85,12 +85,6 @@ class Landing(tkinter.Tk):
             settWindow,
         ]
 
-        # Menu
-        menu = tkinter.Menu()
-        menu.add_command(label="PnL Calculator", command=lambda: calcWindow.toggle_hidden())
-        menu.add_command(label="Settings", command=lambda: settWindow.toggle_hidden())
-        self.configure(menu=menu)
-
         # Widgets
         mainFrame = tkinter.Frame(self)
         self.overFrame = frames.Overview(mainFrame)
@@ -99,6 +93,20 @@ class Landing(tkinter.Tk):
         self.orderFrame = frames.Order(mainFrame)
         self.botFrame = frames.Bot(mainFrame)
 
+        # Menu
+        def update_accounts_for_widgets():
+            self.posFrame.update_accounts()
+            self.orderFrame.update_accounts()
+            self.botFrame.update_accounts()
+
+        settWindow.set_on_toggle_hidden(update_accounts_for_widgets)
+
+        menu = tkinter.Menu()
+        menu.add_command(label="PnL Calculator", command=lambda: calcWindow.toggle_hidden())
+        menu.add_command(label="Settings", command=lambda: settWindow.toggle_hidden())
+        self.configure(menu=menu)
+
+        # Packing
         self.overFrame.pack(fill=tkinter.X)
         self.accFrame.pack()
         self.posFrame.pack(fill=tkinter.X)

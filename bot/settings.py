@@ -24,7 +24,7 @@ _settings = {  # Stores loaded settings, values here are defaults
     "contract2": "XBTUSD",
     "tradeDiff": 1000,
     "closeDiff": 100,
-    "accounts": [],
+    "account": "",
 }
 
 
@@ -95,17 +95,17 @@ def set_close_difference(difference: int):
     """
     _settings["closeDiff"] = difference
 
-def get_accounts():
+def get_account():
     """
-    Returns list of accounts (their names) which bot is supposed to use.
+    Returns name of account which bot is supposed to use.
     """
-    return _settings["accounts"]
+    return _settings["account"]
 
-def set_accounts(accounts: list):
+def set_account(accountName: str):
     """
-    Set list of accounts (their names) which bot is supposed to use.
+    Set account (by its name) which bot is supposed to use.
     """
-    _settings["accounts"] = accounts
+    _settings["account"] = accountName
 
 
 # Manipulating with savefile

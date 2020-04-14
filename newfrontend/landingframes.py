@@ -3,6 +3,7 @@ Frames for landing page window.
 """
 
 import tkinter
+import tkinter.ttk
 
 import backend.core as core
 import backend.accounts as accounts
@@ -40,7 +41,6 @@ class AccountsSelect(tkinter.Frame):
 
         label = tkinter.Label(leftFrame, text="Select Accounts:")
         label.pack()
-
         self.names = []
         self.vars = []
 
@@ -122,7 +122,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
 
         self.tree["columns"] = self.VAR
         self.tree.heading("#0", text="Account", anchor=tkinter.W)
-        self.tree.column("#0", width=80)
+        self.tree.column("#0", width=200)
         for v, t, w in zip(self.VAR, self.TEXT, self.WIDTH):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
@@ -632,6 +632,22 @@ class Order(tkinter.Frame):
         self.mainFrame.pack()
         self.buttonFrame.pack()
 
+        self.update_accounts()
+
+    def update_accounts(self):
+        """
+        Query backend for logged in accounts and adjust ui adequately.
+        """
+        self.accFrame.destroy()
+        self.mainFrame.pack_forget()
+        self.buttonFrame.pack_forget()
+
+        self.accFrame = AccountsSelect(self)
+
+        self.accFrame.pack(fill=tkinter.X)
+        self.mainFrame.pack()
+        self.buttonFrame.pack()
+
     def send(self, sell=False):
         """
         Recognize, which kind of order to send and send it.
@@ -741,10 +757,13 @@ class Bot(tkinter.Frame):
 
         self.runVar = tkinter.IntVar(self)
         self.runVar.set(0)
+        self.accountVar = tkinter.StringVar(self)
 
-        self.runButton = tkinter.Button(self, text=self.TEXT_OFF,
+        runFrame = tkinter.Frame(self)
+        self.runButton = tkinter.Button(runFrame, text=self.TEXT_OFF,
                                         command=self.toggle_running)
-        self.accountFrame = AccountsSelect(self)
+        self.accountsCombo = tkinter.ttk.Combobox(runFrame, text="",
+                                                  textvariable=self.accountVar)
         self.tree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
         self.label = tkinter.Label(self, text="")
 
@@ -755,8 +774,9 @@ class Bot(tkinter.Frame):
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
 
-        self.runButton.pack()
-        self.accountFrame.pack(fill=tkinter.X)
+        self.accountsCombo.grid(column=0, row=0)
+        self.runButton.grid(column=1, row=0)
+        runFrame.pack()
         self.tree.pack()
         self.label.pack()
 
@@ -764,7 +784,22 @@ class Bot(tkinter.Frame):
 
         self._bot_thread = None
 
+        self.update_accounts()
         self.update_values()
+
+    def update_accounts(self):
+        """
+        Query backend for logged in accounts and adjust ui adequately.
+        """
+        names = [account["name"] for account in accounts.get_all()]
+        self.accountsCombo["values"] = names
+        if self.accountVar.get() in names:
+            bot.settings.set_account(self.accountVar.get())
+        elif bot.settings.get_account() in names:
+            self.accountVar.set(bot.settings.get_account())
+        else:
+            self.accountVar.set(names[0])
+            bot.settings.set_account(names[0])
 
     def update_values(self):
         """
@@ -813,12 +848,15 @@ class Bot(tkinter.Frame):
             # Frontend
             self.runVar.set(0)
             self.runButton.configure(text=self.TEXT_OFF)
+            self.accountsCombo.configure(state="enabled")
         else:
             # Bot backend
+            bot.settings.set_account(self.accountVar.get())
             self._bot_thread = run_bot()
             # Frontend
             self.runVar.set(1)
             self.runButton.configure(text=self.TEXT_ON)
+            self.accountsCombo.configure(state="disabled")
 
             self.after(500, self.update_values)
 
