@@ -115,7 +115,7 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
                 "difference": float(entry[5]),
             }
         except Exception as e:
-            raise BitmexBotException("Internal Error: " + str(e) + "Is '" +
+            raise BitmexBotException("Internal Error: " + str(e) + " Is '" +
                                      savefile + "' really a bot log savefile?")
         entries[i] = entry
 

@@ -122,7 +122,7 @@ def has_new_entry():
 
 def get_seconds():
     """
-    Returns how many seconds remain utill next bot iteration.
+    Returns how many seconds remain untill next bot iteration.
     """
     global seconds
     return seconds
