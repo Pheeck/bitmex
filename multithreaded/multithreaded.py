@@ -135,7 +135,8 @@ class Bot(Multithreaded):
 
     def __init__(self, *args, **kwargs):
         Multithreaded.__init__(self, *args, **kwargs)
-        self.new_entry = 1
+        self.new_entry = 1  # Are there new entries in log?
+        self.last_results = log.read_entries(1)[0]
 
     def has_new_entry(self):
         """
@@ -144,6 +145,13 @@ class Bot(Multithreaded):
         if self.new_entry:
             self.new_entry -= 1
             return True
+
+    def get_last_prices(self):
+        """
+        Returns status of monitored contracts prices from when they were last
+        requested.
+        """
+        return self.last_results
 
     def _do_iteration(self):
         """
@@ -156,8 +164,10 @@ class Bot(Multithreaded):
         except Exception as e:
             print(str(e))
             return False
-        log.new_entry(results)
-        self.new_entry = 2
+        if True:  # TODO
+            log.new_entry(results)
+            self.new_entry = 2
+        self.last_results = results
         return True
 
     def _compare(self):

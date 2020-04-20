@@ -714,6 +714,10 @@ class Bot(tkinter.Frame):
         60,
     )
 
+    LABEL_PARAMS = {
+        "width": 16
+    }
+
     def __init__(self, *args, **kwargs):
         tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
@@ -726,8 +730,16 @@ class Bot(tkinter.Frame):
                                         command=self.toggle_running)
         self.accountsCombo = tkinter.ttk.Combobox(runFrame, text="",
                                                   textvariable=self.accountVar)
+
+        currFrame = tkinter.Frame(self)
+        self.firstContractLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
+        self.firstPriceLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
+        self.secondContractLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
+        self.secondPriceLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
+        self.diffLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
+
         self.tree = tkinter.ttk.Treeview(self, height=self.TREE_HEIGHT)
-        self.label = tkinter.Label(self, text="")
+        self.label = tkinter.Label(self, text="", **self.LABEL_PARAMS)
 
         self.tree["columns"] = self.VAR
         self.tree.heading("#0", text="Log", anchor=tkinter.W)
@@ -739,6 +751,12 @@ class Bot(tkinter.Frame):
         self.accountsCombo.grid(column=0, row=0)
         self.runButton.grid(column=1, row=0)
         runFrame.pack()
+        self.firstContractLabel.grid(column=0, row=0)
+        self.firstPriceLabel.grid(column=1, row=0)
+        self.secondContractLabel.grid(column=2, row=0)
+        self.secondPriceLabel.grid(column=3, row=0)
+        self.diffLabel.grid(column=4, row=0)
+        currFrame.pack()
         self.tree.pack()
         self.label.pack()
 
@@ -770,6 +788,7 @@ class Bot(tkinter.Frame):
         Clears positions from tree beforehand.
         Doesnt run if no new entries were written since last call to this.
         """
+        # Update log tree
         if self.bot.has_new_entry():
             entries = backend.log.read_entries(self.SHOW_LOG_ENTRIES)
             entries = entries[::-1]  # Reverse order of entries to be displayed
@@ -785,6 +804,15 @@ class Bot(tkinter.Frame):
                 for v in self.VAR:
                     values.append(str(entry[v]))
                 self.tree.insert("", "end", text=time, values=values)
+
+        if self.runVar.get():  # If bot running
+            # Update current prices
+            prices = self.bot.get_last_prices()
+            self.firstContractLabel.configure(text=str(prices["contract1"]))
+            self.firstPriceLabel.configure(text=str(prices["price1"]))
+            self.secondContractLabel.configure(text=str(prices["contract2"]))
+            self.secondPriceLabel.configure(text=str(prices["price2"]))
+            self.diffLabel.configure(text="d " + str(prices["difference"]))
 
         # Update dots
         if self.runVar.get():  # If bot running
@@ -812,6 +840,13 @@ class Bot(tkinter.Frame):
             self.runVar.set(0)
             self.runButton.configure(text=self.TEXT_OFF)
             self.accountsCombo.configure(state="enabled")
+            # Get rid of dots and current prices
+            self.label.configure(text="")
+            self.firstContractLabel.configure(text="")
+            self.firstPriceLabel.configure(text="")
+            self.secondContractLabel.configure(text="")
+            self.secondPriceLabel.configure(text="")
+            self.diffLabel.configure(text="")
 
             if not self._job is None:
                 self.after_cancel(self._job)
