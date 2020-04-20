@@ -11,7 +11,7 @@ import backend.accounts as accounts
 
 from backend.exceptions import BitmexGUIException
 
-import bot.settings
+import backend.botsettings
 
 
 #
@@ -151,12 +151,12 @@ class BotManagement(tkinter.Frame):
 
         Usually called by settings window when opened.
         """
-        self.firstVar.set(bot.settings.get_first_contract())
-        self.secondVar.set(bot.settings.get_second_contract())
+        self.firstVar.set(backend.botsettings.get_first_contract())
+        self.secondVar.set(backend.botsettings.get_second_contract())
         self.tradeSpin.delete(0, len(self.tradeSpin.get()))
-        self.tradeSpin.insert(0, bot.settings.get_trade_difference())
+        self.tradeSpin.insert(0, backend.botsettings.get_trade_difference())
         self.closeSpin.delete(0, len(self.tradeSpin.get()))
-        self.closeSpin.insert(0, bot.settings.get_close_difference())
+        self.closeSpin.insert(0, backend.botsettings.get_close_difference())
         # Set saved notification off
         self.savedLabel.configure(text="")
 
@@ -165,10 +165,10 @@ class BotManagement(tkinter.Frame):
         Updates bot settings values in bot backend in accordance to current
         state of this frame's inputs.
         """
-        bot.settings.set_first_contract(self.firstVar.get())
-        bot.settings.set_second_contract(self.secondVar.get())
-        bot.settings.set_trade_difference(int(self.tradeSpin.get()))
-        bot.settings.set_close_difference(int(self.closeSpin.get()))
+        backend.botsettings.set_first_contract(self.firstVar.get())
+        backend.botsettings.set_second_contract(self.secondVar.get())
+        backend.botsettings.set_trade_difference(int(self.tradeSpin.get()))
+        backend.botsettings.set_close_difference(int(self.closeSpin.get()))
         self.update_values()
         # Set saved notification on
         self.savedLabel.configure(text="")

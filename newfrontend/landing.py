@@ -15,8 +15,8 @@ from newfrontend.settings import Settings
 import backend.accounts as accounts
 from backend.exceptions import BitmexAccountsException, BitmexBotException
 
-import bot.log
-import bot.settings
+import backend.log
+import backend.botsettings
 
 
 #
@@ -51,7 +51,7 @@ class Landing(tkinter.Tk):
 
         # Bot
         try:
-            bot.log.read_entries(1)
+            backend.log.read_entries(1)
         except BitmexBotException:
             print("No bot log savefile found")
             do_reset = tkinter.messagebox.askyesno("Reset bot log file", "No " +
@@ -61,16 +61,16 @@ class Landing(tkinter.Tk):
                                                    "This will reset the old " +
                                                    "log if it exists.")
             if do_reset:
-                bot.log.reset()
+                backend.log.reset()
             else:
                 sys.exit()
 
         try:
-            bot.settings.load()
+            backend.botsettings.load()
         except BitmexBotException:
             print("No bot settings savefile found, creating a blank one now...")
-            bot.settings.save()
-            bot.settings.load()
+            backend.botsettings.save()
+            backend.botsettings.load()
 
         # Frontend
         self.protocol("WM_DELETE_WINDOW", self.quit)
@@ -130,12 +130,18 @@ class Landing(tkinter.Tk):
         Cleans up and kills the program.
         """
         accounts.save()
-        bot.settings.save()
+        backend.botsettings.save()
 
         # Stop bot
         if self.botFrame.is_running():
             print("Bot still running. Halting it now...")
             self.botFrame.toggle_running()
+
+        # Stop account monitoring
+        self.accFrame.stop_monitoring()
+
+        # Stop position monitoring
+        self.posFrame.stop_monitoring()
 
         self.isAlive = False
         self.after(DESTROY_DELAY, self.destroy)

@@ -10,10 +10,9 @@ import backend.accounts as accounts
 
 from backend.exceptions import BitmexGUIException
 
-import bot.log
-import bot.bot
+import backend.log
 
-from bot.thread import run_bot, stop_bot
+from multithreaded import multithreaded
 
 
 #
@@ -88,8 +87,8 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
 
     TITLE = "Accounts overview"
 
-    REQUESTS_PER_MINUTE = 25  # Window will try to respect this number
-    REQUESTS_FASTER = 55
+    UPDATE_SECONDS = 1  # Won't affect rate at which actual requests are sent
+
     MIN_DOTS = 1
     MAX_DOTS = 5
     MIN_TREE_HEIGHT = 10
@@ -110,14 +109,7 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
     def __init__(self, *args, **kwargs):
         tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
-        self.fastVar = tkinter.IntVar(self)
-
         self.tree = tkinter.ttk.Treeview(self, height=self.MIN_TREE_HEIGHT)
-        rightframe = tkinter.Frame(self)
-        button = tkinter.Button(rightframe, text="Update",
-                                command=lambda: self.update_positions())
-        check = tkinter.Checkbutton(rightframe, var=self.fastVar,
-                                    text="Update faster")
         self.label = tkinter.Label(self)
 
         self.tree["columns"] = self.VAR
@@ -127,79 +119,66 @@ class Accounts(tkinter.Frame):  # TODO More opened windows update limit
             self.tree.heading(v, text=t, anchor=tkinter.W)
             self.tree.column(v, width=w)
 
-        button.grid(column=0, row=0, sticky=tkinter.N+tkinter.S+tkinter.W+tkinter.E)
-        check.grid(column=0, row=1)
-        self.label.grid(column=0, row=1)
-        self.tree.grid(column=0, row=0)
-        # rightframe.grid(column=1, row=0, sticky=tkinter.N+tkinter.S+tkinter.W+tkinter.E)
+        self.tree.pack()
+        self.label.pack()
+
+        self.dots = self.MIN_DOTS
+
+        self.account_monitor = multithreaded.Accounts()
+        self.account_monitor.run()
 
         self._job = None
-        self.dots = self.MIN_DOTS
-        self.delay_multiplier = 1  # Will be set higher when request fails
 
-        self.update_margin()
+        self.update_values()
 
-    def update_margin(self):
+    def update_values(self):
         """
-        Query backend for all accounts margin stats, place them into treeview.
+        Query account monitoring object for all accounts margin stats, place
+        them into treeview.
         Sets this function to repeat after UPDATE_SECONDS seconds.
         """
 
         # Clear tree
         self.tree.delete(*self.tree.get_children())
 
-        # Get all acount names
-        names = [x["name"] for x in accounts.get_all()]
-
         # Get info
-        success = False
-        try:
-            accs = core.account_margin_stats(names)
-            success = True
-            self.delay_multiplier = 1  # Reset to normal value
-        except Exception as e:
-            print(str(e))
-            self.delay_multiplier += 1
-        if success:
-            # Fill tree
-            accs.sort(key=lambda x: x["name"], reverse=False)  # Sort
-            for account in accs:
-                name = account["name"]
-                stats = account["stats"]
+        accs = self.account_monitor.get_accounts()
 
-                values = []
-                for v in self.VAR:
-                    values.append(str(stats[v]))
+        # Fill tree
+        for account in accs:
+            name = account["name"]
+            stats = account["stats"]
 
-                self.tree.insert("", "end", text=name,
-                                 values=values)
-            # Resize tree
-            new_height = len(self.tree.get_children())
-            if new_height < self.MIN_TREE_HEIGHT:
-                new_height = self.MIN_TREE_HEIGHT
-            if new_height > self.MAX_TREE_HEIGHT:
-                new_height = self.MAX_TREE_HEIGHT
-            self.tree.configure(height=new_height)
-            self.tree.grid(column=0, row=0)
+            values = []
+            for v in self.VAR:
+                values.append(str(stats[v]))
 
-            # Update dots
-            self.dots += 1
-            if self.dots > self.MAX_DOTS:
-                self.dots = self.MIN_DOTS
-            self.label.configure(text="." * self.dots)
-        else:  # On error
-            self.label.configure(text="Error: Wasn't able to retrieve accounts"
-                                      + " info. Retrying...")
+            self.tree.insert("", "end", text=name,
+                             values=values)
+        # Resize tree
+        new_height = len(self.tree.get_children())
+        if new_height < self.MIN_TREE_HEIGHT:
+            new_height = self.MIN_TREE_HEIGHT
+        if new_height > self.MAX_TREE_HEIGHT:
+            new_height = self.MAX_TREE_HEIGHT
+        self.tree.configure(height=new_height)
+        self.tree.pack()
+
+        # Update dots
+        self.dots = self.account_monitor.get_iterations_made() % (self.MAX_DOTS - \
+                    self.MIN_DOTS + 1) + self.MIN_DOTS
+        self.label.configure(text="." * self.dots)
 
         # Set repeat
+        self._job = self.after(self.UPDATE_SECONDS, self.update_values)
+
+    def stop_monitoring(self):
+        """
+        Switches account monitoring object off.
+        """
         if not self._job is None:
             self.after_cancel(self._job)
-        if self.fastVar.get():
-            delay = int(1000 * (60 * len(names) / self.REQUESTS_FASTER))
-        else:
-            delay = int(1000 * (60 * len(names) / self.REQUESTS_PER_MINUTE))
-        delay *= self.delay_multiplier
-        self._job = self.after(delay, self.update_margin)
+        self.account_monitor.stop()
 
 
 class Positions(tkinter.Frame):
@@ -209,10 +188,11 @@ class Positions(tkinter.Frame):
 
     TITLE = "Open positions"
 
-    REQUESTS_PER_MINUTE = 25  # Window will try to respect this number
-    REQUESTS_FASTER = 55
+    UPDATE_SECONDS = 1  # Won't affect rate at which actual requests are sent
+
     MIN_DOTS = 1
     MAX_DOTS = 5
+
     MIN_TREE_HEIGHT = 10
     MAX_TREE_HEIGHT = 30
     VAR = (
@@ -246,15 +226,7 @@ class Positions(tkinter.Frame):
     def __init__(self, *args, **kwargs):
         tkinter.LabelFrame.__init__(self, *args, text=self.TITLE, **kwargs)
 
-        self.fastVar = tkinter.IntVar(self)
-
         self.tree = tkinter.ttk.Treeview(self, height=self.MIN_TREE_HEIGHT)
-        subframe = tkinter.Frame(self)
-        button = tkinter.Button(subframe, text="Update",
-                                command=lambda: self.update_positions())
-        check = tkinter.Checkbutton(subframe, var=self.fastVar,
-                                    text="Update faster")
-        label = tkinter.Label(subframe, text="Double-click a position to close it")
         self.label = tkinter.Label(self)
 
         self.tree["columns"] = self.VAR
@@ -267,19 +239,30 @@ class Positions(tkinter.Frame):
         # Handle closing positions
         self.tree.bind("<Double-1>", self.close_selected)
 
-        label.grid(column=0, row=0)
-        button.grid(column=1, row=0)
-        check.grid(column=2, row=0)
         self.tree.pack()
-        #subframe.pack()
         self.label.pack()
 
-        self._job = None
         self.dots = self.MIN_DOTS
-        self.delay_multiplier = 1  # Will be set higher when request fails
+
+        self._job = None
+
+        self.position_monitor = multithreaded.Positions()
+        self.position_monitor.run()
 
         self.update_accounts()
-        self.update_positions()
+        self.update_values()
+
+    def _resize_tree(self):
+        """
+        Internal method
+        """
+        new_height = len(self.tree.get_children())
+        if new_height < self.MIN_TREE_HEIGHT:
+            new_height = self.MIN_TREE_HEIGHT
+        if new_height > self.MAX_TREE_HEIGHT:
+            new_height = self.MAX_TREE_HEIGHT
+        self.tree.configure(height=new_height)
+        self.tree.pack()
 
     def close_selected(self, event):
         """
@@ -340,9 +323,10 @@ class Positions(tkinter.Frame):
 
         self._resize_tree()
 
-    def update_positions(self):
+    def update_values(self):
         """
-        Query backend for currently open positions and place them into treeview.
+        Query positions monitoring object for currently open positions and place
+        them into treeview.
         Sets this function to repeat after UPDATE_SECONDS seconds.
         Requires tree to already be populated with accounts.
         Clears positions from tree beforehand.
@@ -360,60 +344,37 @@ class Positions(tkinter.Frame):
             names.append(self.tree.item(child)["text"])
 
         # Get info
-        success = False
-        try:
-            accs = core.position_info(names)
-            success = True
-            self.delay_multiplier = 1  # Reset to normal value
-        except Exception as e:
-            print(str(e))
-            self.delay_multiplier += 1
-        if success:
-            # Fill tree
-            for account, parent in zip(accs, self.tree.get_children()):
-                name = account["name"]
-                positions = account["positions"]
-                positions.sort(key=lambda x: x["symbol"], reverse=False)  # Sort
+        pos = self.position_monitor.get_positions()
 
-                for position in positions:
-                    values = []
-                    for v in self.VAR:
-                        values.append(str(position[v]))
+        # Fill tree
+        for account, parent in zip(pos, self.tree.get_children()):
+            name = account["name"]
+            positions = account["positions"]
 
-                    self.tree.insert(parent, "end", text=position["symbol"],
-                                     values=values)
-            self._resize_tree()
+            for position in positions:
+                values = []
+                for v in self.VAR:
+                    values.append(str(position[v]))
 
-            # Update dots
-            self.dots += 1
-            if self.dots > self.MAX_DOTS:
-                self.dots = self.MIN_DOTS
-            self.label.configure(text="." * self.dots)
-        else:  # On error
-            self.label.configure(text="Error: Wasn't able to retrieve positions"
-                                      + " info. Retrying...")
+                self.tree.insert(parent, "end", text=position["symbol"],
+                                 values=values)
+        self._resize_tree()
+
+        # Update dots
+        self.dots = self.position_monitor.get_iterations_made() % (self.MAX_DOTS - \
+                    self.MIN_DOTS + 1) + self.MIN_DOTS
+        self.label.configure(text="." * self.dots)
 
         # Set repeat
+        self._job = self.after(self.UPDATE_SECONDS, self.update_values)
+
+    def stop_monitoring(self):
+        """
+        Switches position monitoring object off.
+        """
         if not self._job is None:
             self.after_cancel(self._job)
-        if self.fastVar.get():
-            delay = int(1000 * (60 * len(names) / self.REQUESTS_FASTER))
-        else:
-            delay = int(1000 * (60 * len(names) / self.REQUESTS_PER_MINUTE))
-        delay *= self.delay_multiplier
-        self._job = self.after(delay, self.update_positions)
-
-    def _resize_tree(self):
-        """
-        Internal method
-        """
-        new_height = len(self.tree.get_children())
-        if new_height < self.MIN_TREE_HEIGHT:
-            new_height = self.MIN_TREE_HEIGHT
-        if new_height > self.MAX_TREE_HEIGHT:
-            new_height = self.MAX_TREE_HEIGHT
-        self.tree.configure(height=new_height)
-        self.tree.pack()
+        self.position_monitor.stop()
 
 
 class Order(tkinter.Frame):
@@ -722,13 +683,14 @@ class Bot(tkinter.Frame):
 
     TITLE = "Bot"
 
-    UPDATE_SECONDS = 1
+    UPDATE_SECONDS = 1  # Won't affect rate at which actual requests are sent
 
     TEXT_OFF = "Start bot"
     TEXT_ON = "Stop bot"
+    MIN_DOTS = 1
+    MAX_DOTS = 5
 
     SHOW_LOG_ENTRIES = 10
-
     TREE_HEIGHT = 10
     VAR = (
         "contract1",
@@ -782,7 +744,7 @@ class Bot(tkinter.Frame):
 
         self._job = None
 
-        self._bot_thread = None
+        self.bot = multithreaded.Bot()  # Create bot object
 
         self.update_accounts()
         self.update_values()
@@ -794,22 +756,22 @@ class Bot(tkinter.Frame):
         names = [account["name"] for account in accounts.get_all()]
         self.accountsCombo["values"] = names
         if self.accountVar.get() in names:
-            bot.settings.set_account(self.accountVar.get())
-        elif bot.settings.get_account() in names:
-            self.accountVar.set(bot.settings.get_account())
+            backend.botsettings.set_account(self.accountVar.get())
+        elif backend.botsettings.get_account() in names:
+            self.accountVar.set(backend.botsettings.get_account())
         else:
             self.accountVar.set(names[0])
-            bot.settings.set_account(names[0])
+            backend.botsettings.set_account(names[0])
 
     def update_values(self):
         """
-        Query bot backend for log entries and place them into treeview.
+        Query bot for log entries and place them into treeview.
         Sets this function to repeat after UPDATE_SECONDS seconds.
         Clears positions from tree beforehand.
         Doesnt run if no new entries were written since last call to this.
         """
-        if bot.bot.has_new_entry():
-            entries = bot.log.read_entries(self.SHOW_LOG_ENTRIES)
+        if self.bot.has_new_entry():
+            entries = backend.log.read_entries(self.SHOW_LOG_ENTRIES)
             entries = entries[::-1]  # Reverse order of entries to be displayed
 
             # Clear tree
@@ -824,10 +786,11 @@ class Bot(tkinter.Frame):
                     values.append(str(entry[v]))
                 self.tree.insert("", "end", text=time, values=values)
 
-        # Update seconds
+        # Update dots
         if self.runVar.get():  # If bot running
-            seconds = bot.bot.get_seconds()
-            self.label.configure(text = str(seconds) + " seconds remaining")
+            self.dots = self.bot.get_iterations_made() % (self.MAX_DOTS - \
+                        self.MIN_DOTS + 1) + self.MIN_DOTS
+            self.label.configure(text="." * self.dots)
         else:
             self.label.configure(text="")
 
@@ -843,16 +806,19 @@ class Bot(tkinter.Frame):
         Switches between on and off states of bot.
         """
         if self.runVar.get():  # If bot running
-            # Bot backend
-            stop_bot(self._bot_thread)
+            # Bot
+            self.bot.stop()
             # Frontend
             self.runVar.set(0)
             self.runButton.configure(text=self.TEXT_OFF)
             self.accountsCombo.configure(state="enabled")
+
+            if not self._job is None:
+                self.after_cancel(self._job)
         else:
-            # Bot backend
-            bot.settings.set_account(self.accountVar.get())
-            self._bot_thread = run_bot()
+            # Bot
+            backend.botsettings.set_account(self.accountVar.get())
+            self.bot.run()
             # Frontend
             self.runVar.set(1)
             self.runButton.configure(text=self.TEXT_ON)
@@ -862,6 +828,7 @@ class Bot(tkinter.Frame):
 
     def is_running(self):
         """
-        Returns if bot is currently runnning.
+        Returns if bot is currently runnning
+        (according to what this frame thinks).
         """
         return bool(self.runVar.get())

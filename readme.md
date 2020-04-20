@@ -28,3 +28,4 @@
 ```sh
 python3 __main__.py newfrontend
 ```
+- Doporučení způsob vypínání programu je přes GUI. Používání POSIX signálů může vést k nedokončeným requestům.

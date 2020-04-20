@@ -1,5 +1,5 @@
 """
-Functions related to bot activity log.
+Everything related to bot activity log.
 """
 
 from datetime import datetime

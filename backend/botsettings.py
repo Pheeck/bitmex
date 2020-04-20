@@ -1,5 +1,5 @@
 """
-Functions for saving and loading bot settings.
+Saving and loading bot settings.
 """
 
 from json import loads, dumps
@@ -19,7 +19,6 @@ SAVEFILE = "./botsettings"
 #
 
 _settings = {  # Stores loaded settings, values here are defaults
-    "interval": 3600,
     "contract1": "XBTUSD",
     "contract2": "XBTUSD",
     "tradeDiff": 1000,
@@ -33,19 +32,6 @@ _settings = {  # Stores loaded settings, values here are defaults
 #
 
 # Getters and setters
-
-def get_interval():
-    """
-    Returns configured interval between bot executing its routine.
-    """
-    return _settings["interval"]
-
-def set_interval(interval: int):
-    """
-    Set interval between bot executing its routine in seconds.
-    Will take effect after next bot routine.
-    """
-    _settings["interval"] = interval
 
 def get_first_contract():
     """
