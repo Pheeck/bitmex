@@ -138,6 +138,10 @@ class Bot(Multithreaded):
         self.new_entry = 1  # Are there new entries in log?
         self.last_results = log.read_entries(1)[0]
 
+        self.holding = False  # Is bot currently holding contracts?
+        self.first_price_bigger = False  # How did the prices compare when
+                                         # last bot traded contracts
+
     def has_new_entry(self):
         """
         Returns if new log entry was logged since last call to this function.
@@ -153,6 +157,32 @@ class Bot(Multithreaded):
         """
         return self.last_results
 
+    def is_holding(self):
+        """
+        Return if bot is currently holding contracts.
+        """
+        return self.holding
+
+    def _trade(self, first_price_bigger=False):
+        """
+        Buys contracts with first contract symbol and sells contracts with
+        second contract symbol if first_price_bigger is True.
+        Sells contracts with first contract symbol and buys contracts with
+        second contract symbol if first_price_bigger is False.
+        Marks that bot is now holding contracts and which price was bigger.
+        """
+        # TODO
+        self.holding = True
+        self.first_price_bigger = first_price_bigger
+
+    def _close(self):
+        """
+        Buys back sold contracts and sells bought contracts.
+        Marks that bot is holding contracts no more.
+        """
+        # TODO
+        self.holding = False
+
     def _do_iteration(self):
         """
         Compare prices of confiured contracts and log results.
@@ -164,7 +194,13 @@ class Bot(Multithreaded):
         except Exception as e:
             print(str(e))
             return False
-        if True:  # TODO
+
+        if results["action"] == "trade":
+            self._trade(results["price1"] > results["price2"])
+        elif results["action"] == "close":
+            self._close()
+
+        if results["action"] == "trade" or results["action"] == "close":
             log.new_entry(results)
             self.new_entry = 2
         self.last_results = results
@@ -172,7 +208,7 @@ class Bot(Multithreaded):
 
     def _compare(self):
         """
-        Compares prices of two configured contracts.
+        Compares prices of two configured contracts and return the results.
         Internal method.
 
         Returns dict of {
@@ -182,6 +218,9 @@ class Bot(Multithreaded):
             price1:     price of first contract,
             price2:     price of second contract,
             difference: difference between the prices,
+            key:        name of key of account on which bot currently runs,
+            action:     one of "wait", "trade", "hold" or "close" depending on
+                        what should currently be done
         }.
         """
         account_name = settings.get_account()
@@ -198,6 +237,19 @@ class Bot(Multithreaded):
         second_price = core.instrument_price(account_name, second_contract)[self.PRICE_TYPE]
         difference = abs(first_price - second_price)
 
+        key = accounts.get(settings.get_account())["key"]
+
+        if self.holding:
+            if difference <= close_difference:
+                action = "close"
+            else:
+                action = "hold"
+        else:
+            if difference >= trade_difference:
+                action = "trade"
+            else:
+                action = "wait"
+
         return {
             "time": datetime.now(),
             "contract1": first_contract,
@@ -205,6 +257,8 @@ class Bot(Multithreaded):
             "price1": first_price,
             "price2": second_price,
             "difference": difference,
+            "key": key,
+            "action": action
         }
 
 

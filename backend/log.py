@@ -48,6 +48,8 @@ def reset(savefile: str = SAVEFILE):
         "price1": 20,
         "price2": 40,
         "difference": 20,
+        "key": "xxxxxxxxxxxxxxxxxxxxxxxx",
+        "action": "wait"
     }, savefile)
 
 def new_entry(results: dict, savefile: str = SAVEFILE):
@@ -60,6 +62,9 @@ def new_entry(results: dict, savefile: str = SAVEFILE):
         price1:     price of first contract,
         price2:     price of second contract,
         difference: difference between the prices,
+        key:        name of key of account on which bot currently runs,
+        action:     one of "wait", "trade", "hold" or "close" depending on what
+                    is currently done ("wait" and "hold" are used for debuging)
     } as argument.
     """
     try:
@@ -68,7 +73,8 @@ def new_entry(results: dict, savefile: str = SAVEFILE):
         raise BitmexAccountsException(str(e))
 
     entry = results["time"].strftime(TIME_FORMAT) + "\t"
-    entry += "{contract1}\t{price1}\t{contract2}\t{price2}\t{difference}\n".format(**results)
+    entry += ("{contract1}\t{price1}\t{contract2}\t{price2}\t{difference}\t" +
+              "{key}\t{action}\n").format(**results)
 
     f.write(entry)
     f.close()
@@ -84,18 +90,21 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
         price1:     price of first contract,
         price2:     price of second contract,
         difference: difference between the prices,
+        key:        name of key of account on which bot ran when entry was made,
+        action:     description of action taken when entry was made
     } dicts.
     """
     f = None
     try:
         f = open(savefile, "r")
-        # Note: Last line will be blank -> .pop(), n+1
+        # Note: Last line will be blank -> .pop(), n+1 (maybe isn't needed?)
         if n == 0:
             entries = read_lines()
-            entries.pop()
+            #entries.pop()
         else:
-            entries = read_last_n_lines(n + 1, f)
-            entries.pop()
+            #entries = read_last_n_lines(n + 1, f)
+            entries = read_last_n_lines(n, f)
+            #entries.pop()
     except Exception as e:
         raise BitmexBotException("Internal Error: " + str(e) + " Does '" +
                                  savefile + "' really exist?")
@@ -113,6 +122,8 @@ def read_entries(n: int = 0, savefile: str = SAVEFILE):
                 "contract2": entry[3],
                 "price2": float(entry[4]),
                 "difference": float(entry[5]),
+                "key": entry[6],
+                "action": entry[7]
             }
         except Exception as e:
             raise BitmexBotException("Internal Error: " + str(e) + " Is '" +
