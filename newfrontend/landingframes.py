@@ -3,6 +3,7 @@ Frames for landing page window.
 """
 
 import tkinter
+import tkinter.messagebox
 import tkinter.ttk
 
 import backend.core as core
@@ -698,6 +699,7 @@ class Bot(tkinter.Frame):
         "contract2",
         "price2",
         "difference",
+        "action"
     )
     TEXT = (
         "First contract",
@@ -705,6 +707,7 @@ class Bot(tkinter.Frame):
         "Second contract",
         "Price",
         "Delta",
+        "Action"
     )
     WIDTH = (
         130,
@@ -712,8 +715,12 @@ class Bot(tkinter.Frame):
         130,
         60,
         60,
+        100
     )
 
+    RUN_WIDGET_PARAMS = {
+        "width": 16
+    }
     LABEL_PARAMS = {
         "width": 16
     }
@@ -724,12 +731,19 @@ class Bot(tkinter.Frame):
         self.runVar = tkinter.IntVar(self)
         self.runVar.set(0)
         self.accountVar = tkinter.StringVar(self)
+        self.dryVar = tkinter.IntVar(self)
+        self.dryVar.set(1)
 
         runFrame = tkinter.Frame(self)
         self.runButton = tkinter.Button(runFrame, text=self.TEXT_OFF,
-                                        command=self.toggle_running)
+                                        command=self.toggle_running,
+                                        **self.RUN_WIDGET_PARAMS)
         self.accountsCombo = tkinter.ttk.Combobox(runFrame, text="",
-                                                  textvariable=self.accountVar)
+                                                  textvariable=self.accountVar,
+                                                  **self.RUN_WIDGET_PARAMS)
+        self.dryCheck = tkinter.Checkbutton(runFrame, text="Dry run",
+                                            var=self.dryVar,
+                                            **self.RUN_WIDGET_PARAMS)  # TODO
 
         currFrame = tkinter.Frame(self)
         self.firstContractLabel = tkinter.Label(currFrame, text="", **self.LABEL_PARAMS)
@@ -749,7 +763,8 @@ class Bot(tkinter.Frame):
             self.tree.column(v, width=w)
 
         self.accountsCombo.grid(column=0, row=0)
-        self.runButton.grid(column=1, row=0)
+        self.dryCheck.grid(column=1, row=0)
+        self.runButton.grid(column=2, row=0)
         runFrame.pack()
         self.firstContractLabel.grid(column=0, row=0)
         self.firstPriceLabel.grid(column=1, row=0)
@@ -832,14 +847,24 @@ class Bot(tkinter.Frame):
     def toggle_running(self):
         """
         Switches between on and off states of bot.
+        Returns False when state couldn't be toggled.
         """
         if self.runVar.get():  # If bot running
             # Bot
+            if self.bot.is_holding():
+                if tkinter.messagebox.askyesno("Halt BitMEX bot", "Bot is " +
+                                               "still holding contracts. Do " +
+                                               "you wish to shut it " +
+                                               "down and close the position?"):
+                    print("Bot is still holding contracts, closing bot position now...")
+                else:
+                    return False
             self.bot.stop()
             # Frontend
             self.runVar.set(0)
             self.runButton.configure(text=self.TEXT_OFF)
-            self.accountsCombo.configure(state="enabled")
+            self.dryCheck.configure(state="normal")
+            self.accountsCombo.configure(state="normal")
             # Get rid of dots and current prices
             self.label.configure(text="")
             self.firstContractLabel.configure(text="")
@@ -857,9 +882,11 @@ class Bot(tkinter.Frame):
             # Frontend
             self.runVar.set(1)
             self.runButton.configure(text=self.TEXT_ON)
+            self.dryCheck.configure(state="disabled")
             self.accountsCombo.configure(state="disabled")
 
             self.after(500, self.update_values)
+        return True
 
     def is_running(self):
         """

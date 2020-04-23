@@ -129,13 +129,16 @@ class Landing(tkinter.Tk):
         """
         Cleans up and kills the program.
         """
-        accounts.save()
-        backend.botsettings.save()
-
         # Stop bot
         if self.botFrame.is_running():
             print("Bot still running. Halting it now...")
-            self.botFrame.toggle_running()
+            if not self.botFrame.toggle_running():
+                print("Can't exit the program as the bot wasn't shut down.")
+                return
+
+        # Savefiles
+        accounts.save()
+        backend.botsettings.save()
 
         # Stop account monitoring
         self.accFrame.stop_monitoring()
@@ -143,5 +146,6 @@ class Landing(tkinter.Tk):
         # Stop position monitoring
         self.posFrame.stop_monitoring()
 
+        # Kill window
         self.isAlive = False
         self.after(DESTROY_DELAY, self.destroy)

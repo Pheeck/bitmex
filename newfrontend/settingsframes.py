@@ -155,7 +155,7 @@ class BotManagement(tkinter.Frame):
         self.secondVar.set(backend.botsettings.get_second_contract())
         self.tradeSpin.delete(0, len(self.tradeSpin.get()))
         self.tradeSpin.insert(0, backend.botsettings.get_trade_difference())
-        self.closeSpin.delete(0, len(self.tradeSpin.get()))
+        self.closeSpin.delete(0, len(self.closeSpin.get()))
         self.closeSpin.insert(0, backend.botsettings.get_close_difference())
         # Set saved notification off
         self.savedLabel.configure(text="")

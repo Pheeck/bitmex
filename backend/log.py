@@ -43,8 +43,8 @@ def reset(savefile: str = SAVEFILE):
     # Write a sample entry
     new_entry({
         "time": datetime.now(),
-        "contract1": "SAM",
-        "contract2": "PLE",
+        "contract1": "INIT",
+        "contract2": "INIT",
         "price1": 20,
         "price2": 40,
         "difference": 20,

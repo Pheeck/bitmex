@@ -128,7 +128,7 @@ class Bot(Multithreaded):
     Class representing contract prices comparing bot.
     """
 
-    REQUESTS_PER_MINUTE = 25
+    REQUESTS_PER_MINUTE = 30
 
     PRICE_TYPE = "lastPrice"  # Which price data to use
                               # lastPrice, bidPrice, midPrice, askPrice
@@ -141,6 +141,14 @@ class Bot(Multithreaded):
         self.holding = False  # Is bot currently holding contracts?
         self.first_price_bigger = False  # How did the prices compare when
                                          # last bot traded contracts
+
+    def stop(self):
+        """
+        Kills bots thread.
+        Overriding.
+        """
+        self._close()
+        Multithreaded.stop(self)
 
     def has_new_entry(self):
         """
@@ -267,7 +275,7 @@ class Accounts(Multithreaded):
     Class for monitoring wallet ballance and unrealised PnL for each account.
     """
 
-    REQUESTS_PER_MINUTE = 25
+    REQUESTS_PER_MINUTE = 15
 
     def __init__(self, *args, **kwargs):
         Multithreaded.__init__(self, *args, **kwargs)
@@ -324,7 +332,7 @@ class Positions(Multithreaded):
     Class for monitoring status of positions of each account.
     """
 
-    REQUESTS_PER_MINUTE = 25
+    REQUESTS_PER_MINUTE = 20
 
     def __init__(self, *args, **kwargs):
         Multithreaded.__init__(self, *args, **kwargs)
