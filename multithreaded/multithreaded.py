@@ -144,10 +144,16 @@ class Bot(Multithreaded):
 
     def stop(self):
         """
-        Kills bots thread.
+        Kills bots thread. Closes bot position if holding contract and writes
+        coresponding log.
         Overriding.
         """
-        self._close()
+        if self.holding:
+            results = self._compare()
+            results["action"] = "close"
+            self.last_results = results
+            self._log_results(results)
+            self._close()
         Multithreaded.stop(self)
 
     def has_new_entry(self):
@@ -178,6 +184,7 @@ class Bot(Multithreaded):
         Sells contracts with first contract symbol and buys contracts with
         second contract symbol if first_price_bigger is False.
         Marks that bot is now holding contracts and which price was bigger.
+        Internal method.
         """
         # TODO
         self.holding = True
@@ -187,6 +194,7 @@ class Bot(Multithreaded):
         """
         Buys back sold contracts and sells bought contracts.
         Marks that bot is holding contracts no more.
+        Internal method.
         """
         # TODO
         self.holding = False
@@ -208,11 +216,19 @@ class Bot(Multithreaded):
         elif results["action"] == "close":
             self._close()
 
-        if results["action"] == "trade" or results["action"] == "close":
-            log.new_entry(results)
-            self.new_entry = 2
         self.last_results = results
+        if results["action"] == "trade" or results["action"] == "close":
+            self._log_results(results)
+
         return True
+
+    def _log_results(self, results):
+        """
+        Writes results given as arg to log.
+        Internal method.
+        """
+        log.new_entry(results)
+        self.new_entry = 2
 
     def _compare(self):
         """

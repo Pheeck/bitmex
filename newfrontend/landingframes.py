@@ -851,7 +851,7 @@ class Bot(tkinter.Frame):
         """
         if self.runVar.get():  # If bot running
             # Bot
-            if self.bot.is_holding():
+            if not self.dryVar.get() and self.bot.is_holding():
                 if tkinter.messagebox.askyesno("Halt BitMEX bot", "Bot is " +
                                                "still holding contracts. Do " +
                                                "you wish to shut it " +
@@ -861,6 +861,7 @@ class Bot(tkinter.Frame):
                     return False
             self.bot.stop()
             # Frontend
+            self.update_values()  # To display any remaining logs first
             self.runVar.set(0)
             self.runButton.configure(text=self.TEXT_OFF)
             self.dryCheck.configure(state="normal")
